@@ -23,7 +23,8 @@
     "@anthropic-ai/sdk": "^0.52.0",
     "chalk": "^5.4.1",
     "glob": "^11.0.1",
-    "openai": "^6.33.0"
+    "openai": "^6.33.0",
+    "undici": "^6.25.0"
   },
   "devDependencies": {
     "@types/node": "^22.15.3",

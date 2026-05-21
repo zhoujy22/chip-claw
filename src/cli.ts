@@ -6,6 +6,7 @@ import { printWelcome, printUserPrompt, printError, printInfo, printPlanForAppro
 import { loadSession, getLatestSessionId } from "./session.js";
 import { listMemories } from "./memory.js";
 import { discoverSkills, resolveSkillPrompt, getSkillByName, executeSkill } from "./skills.js";
+import { configureEnvProxy } from "./proxy.js";
 import type { PermissionMode } from "./tools.js";
 
 interface ParsedArgs {
@@ -292,6 +293,8 @@ async function runRepl(agent: Agent) {
 }
 
 async function main() {
+  configureEnvProxy();
+
   const { permissionMode, model, apiBase, prompt, resume, thinking, maxCost, maxTurns } = parseArgs();
 
   // Resolve API config from env vars (API keys only via env, not CLI)

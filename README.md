@@ -75,7 +75,7 @@ src/
 
 ### 前置条件
 
-- Node.js >= 18
+- Node.js >= 18.17
 - API Key：Anthropic（`ANTHROPIC_API_KEY`）或 OpenAI 兼容接口（`OPENAI_API_KEY` + `OPENAI_BASE_URL`）
 
 ### 安装与构建

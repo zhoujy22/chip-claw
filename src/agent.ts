@@ -1038,16 +1038,20 @@ IMPORTANT: When your plan is complete, you MUST call exit_plan_mode. Do NOT ask 
       // immediately — the tool runs while the model still generates.
       const earlyExecutions = new Map<string, Promise<string>>();
 
-      const response = await this.callAnthropicStream((block) => {
-        const input = block.input as Record<string, any>;
-        if (CONCURRENCY_SAFE_TOOLS.has(block.name)) {
-          const perm = checkPermission(block.name, input, this.permissionMode, this.planFilePath || undefined);
-          if (perm.action === "allow") {
-            earlyExecutions.set(block.id, this.executeToolCall(block.name, input));
+      let response: Anthropic.Message;
+      try {
+        response = await this.callAnthropicStream((block) => {
+          const input = block.input as Record<string, any>;
+          if (CONCURRENCY_SAFE_TOOLS.has(block.name)) {
+            const perm = checkPermission(block.name, input, this.permissionMode, this.planFilePath || undefined);
+            if (perm.action === "allow") {
+              earlyExecutions.set(block.id, this.executeToolCall(block.name, input));
+            }
           }
-        }
-      });
-      if (!this.isSubAgent) stopSpinner();
+        });
+      } finally {
+        if (!this.isSubAgent) stopSpinner();
+      }
       this.lastApiCallTime = Date.now();
       this.totalInputTokens += response.usage.input_tokens;
       this.totalOutputTokens += response.usage.output_tokens;
@@ -1277,8 +1281,12 @@ IMPORTANT: When your plan is complete, you MUST call exit_plan_mode. Do NOT ask 
       }
 
       if (!this.isSubAgent) startSpinner();
-      const response = await this.callOpenAIStream();
-      if (!this.isSubAgent) stopSpinner();
+      let response: OpenAI.ChatCompletion;
+      try {
+        response = await this.callOpenAIStream();
+      } finally {
+        if (!this.isSubAgent) stopSpinner();
+      }
       this.lastApiCallTime = Date.now();
 
       // Track tokens
