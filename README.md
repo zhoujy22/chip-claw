@@ -2,7 +2,7 @@
 
 通过自然语言交互，生成、优化和验证 Verilog RTL 代码的智能体。
 
-基于 [mini-claude](https://github.com/anthropics/claude-code-from-scratch) 架构 —— 用 TypeScript 从零实现的 Claude Code Agent Loop。
+基于 [mini-claude](https://github.com/Windy3f3f3f3f/claude-code-from-scratch) 架构 —— 用 TypeScript 从零实现的 Claude Code Agent Loop。
 
 ## 功能特性
 
