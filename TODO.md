@@ -41,13 +41,13 @@
 ## Phase 1: RTL 生成 Agent
 
 - [x] **P1-1** RTL 生成 System Prompt ✅
-  - `CLAUDE.md`: RTL 编码规范（命名约定、时钟复位、FSM、参数化等）
-  - `CLAUDE.md`: 常用模块模板列表（FIFO、AXI4、仲裁器、CDC、APB）
-  - `CLAUDE.md`: 设计工作流（spec → RTL → TB → compile → simulate）
+  - `CHIPCLAW.md`: RTL 编码规范（命名约定、时钟复位、FSM、参数化等）
+  - `CHIPCLAW.md`: 常用模块模板列表（FIFO、AXI4、仲裁器、CDC、APB）
+  - `CHIPCLAW.md`: 设计工作流（spec → RTL → TB → compile → simulate）
   - `src/prompt.ts`: Chip-Claw 专用 system prompt（Verilog 编码规则、TB 约定、默认工作流）
 
 - [ ] **P1-2** 自然语言到 RTL 的生成流程
-  - [x] `/gen-module` skill 定义（`.claude/skills/gen-module/SKILL.md`）
+  - [x] `/gen-module` skill 定义（`.chipclaw/skills/gen-module/SKILL.md`）
   - [ ] 端到端流程验证（需要 P0-2 工具链就绪后测试）
   - [ ] 编译检查 → 修复语法错误的自动循环（依赖 rtl_compile 工具实现）
 
@@ -103,7 +103,7 @@
 架构：单主 Agent 统一决策，工具调用做原子操作，subagent 处理独立重活（波形深度分析、批量 tb 生成等），结果回传主 Agent 继续推理。
 
 - [ ] **P4-1** 专用 SubAgent 定义
-  - [x] `code-reviewer`：RTL 代码审查（`.claude/agents/reviewer.md`）
+  - [x] `code-reviewer`：RTL 代码审查（`.chipclaw/agents/reviewer.md`）
   - [ ] `waveform-analyst`：接收 VCD + 失败信息，深度分析波形，返回 bug 定位
   - [ ] `testbench-gen`：接收模块接口 + 功能描述，批量生成 testcase
   - [ ] `synth-analyst`：接收综合报告，返回关键路径/面积分析与优化建议
@@ -114,9 +114,9 @@
   - 项目特定约束记忆（时钟频率、接口标准、IP 库）
 
 - [ ] **P4-3** Skill 系统扩展
-  - [x] `/gen-module` — 快速生成模块骨架（`.claude/skills/gen-module/SKILL.md`）
-  - [x] `/verify` — 一键编译+仿真+报告（`.claude/skills/verify/SKILL.md`）
-  - [x] `/lint-fix` — lint 检查并自动修复（`.claude/skills/lint-fix/SKILL.md`）
+  - [x] `/gen-module` — 快速生成模块骨架（`.chipclaw/skills/gen-module/SKILL.md`）
+  - [x] `/verify` — 一键编译+仿真+报告（`.chipclaw/skills/verify/SKILL.md`）
+  - [x] `/lint-fix` — lint 检查并自动修复（`.chipclaw/skills/lint-fix/SKILL.md`）
   - [ ] `/optimize` — 综合+分析+优化建议
   - [ ] `/coverage` — 覆盖率分析报告
 
