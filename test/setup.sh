@@ -4,7 +4,7 @@
 
 set -e
 
-echo "=== Mini Claude 测试环境配置 ==="
+echo "=== ChipClaw 测试环境配置 ==="
 
 # 1. 创建 .mcp.json（MCP 服务器配置）
 cat > .mcp.json << 'EOF'

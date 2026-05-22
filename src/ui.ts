@@ -2,8 +2,8 @@ import chalk from "chalk";
 
 export function printWelcome() {
   console.log(
-    chalk.bold.cyan("\n  Mini Claude Code") +
-      chalk.gray(" — A minimal coding agent\n")
+    chalk.bold.cyan("\n  ChipClaw") +
+      chalk.gray(" — A hardware development assistant agent\n")
   );
   console.log(chalk.gray("  Type your request, or 'exit' to quit."));
   console.log(chalk.gray("  Commands: /clear /plan /cost /compact /memory /skills\n"));

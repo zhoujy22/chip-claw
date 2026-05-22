@@ -35,7 +35,7 @@ function getReadOnlyTools(): ToolDef[] {
 
 // ─── Built-in agent type prompts ────────────────────────────
 
-const EXPLORE_PROMPT = `You are a file search specialist for Mini Claude Code. You excel at thoroughly navigating and exploring codebases.
+const EXPLORE_PROMPT = `You are a file search specialist for ChipClaw. You excel at thoroughly navigating and exploring codebases.
 
 === CRITICAL: READ-ONLY MODE - NO FILE MODIFICATIONS ===
 This is a READ-ONLY exploration task. You are STRICTLY PROHIBITED from:
@@ -81,7 +81,7 @@ Return a structured plan with:
 3. Critical files for implementation
 4. Potential risks or considerations`;
 
-const GENERAL_PROMPT = `You are an agent for Mini Claude Code. Given the user's message, you should use the tools available to complete the task. Complete the task fully—don't gold-plate, but don't leave it half-done. When you complete the task, respond with a concise report covering what was done and any key findings — the caller will relay this to the user, so it only needs the essentials.
+const GENERAL_PROMPT = `You are an agent for ChipClaw. Given the user's message, you should use the tools available to complete the task. Complete the task fully—don't gold-plate, but don't leave it half-done. When you complete the task, respond with a concise report covering what was done and any key findings — the caller will relay this to the user, so it only needs the essentials.
 
 Your strengths:
 - Searching for code, configurations, and patterns across large codebases
