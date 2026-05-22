@@ -1,4 +1,4 @@
-// Skills system — discover, parse, and execute .claude/skills/*/SKILL.md
+// Skills system — discover, parse, and execute .chipclaw/skills/*/SKILL.md
 // Mirrors Claude Code's skill architecture: frontmatter metadata + prompt templates.
 
 import { readFileSync, existsSync, readdirSync, statSync } from "fs";
@@ -30,11 +30,11 @@ export function discoverSkills(): SkillDefinition[] {
   const skills = new Map<string, SkillDefinition>();
 
   // User-level skills (lower priority)
-  const userDir = join(homedir(), ".claude", "skills");
+  const userDir = join(homedir(), ".chipclaw", "skills");
   loadSkillsFromDir(userDir, "user", skills);
 
   // Project-level skills (higher priority, overwrites user-level)
-  const projectDir = join(process.cwd(), ".claude", "skills");
+  const projectDir = join(process.cwd(), ".chipclaw", "skills");
   loadSkillsFromDir(projectDir, "project", skills);
 
   cachedSkills = Array.from(skills.values());

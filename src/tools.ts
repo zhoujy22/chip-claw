@@ -151,7 +151,7 @@ export const toolDefinitions: ToolDef[] = [
   {
     name: "skill",
     description:
-      "Invoke a registered skill by name. Skills are prompt templates loaded from .claude/skills/. Returns the skill's resolved prompt to follow.",
+      "Invoke a registered skill by name. Skills are prompt templates loaded from .chipclaw/skills/. Returns the skill's resolved prompt to follow.",
     input_schema: {
       type: "object" as const,
       properties: {
@@ -524,7 +524,7 @@ export function isDangerous(command: string): boolean {
   return DANGEROUS_PATTERNS.some((p) => p.test(command));
 }
 
-// ─── Permission rules (.claude/settings.json) ───────────────
+// ─── Permission rules (.chipclaw/settings.json) ─────────────
 
 interface ParsedRule {
   tool: string;
@@ -559,10 +559,10 @@ export function loadPermissionRules(): PermissionRules {
   const allow: ParsedRule[] = [];
   const deny: ParsedRule[] = [];
 
-  // Load from user-level settings (~/.claude/settings.json)
-  const userSettings = loadSettings(join(homedir(), ".claude", "settings.json"));
-  // Load from project-level settings (.claude/settings.json)
-  const projectSettings = loadSettings(join(process.cwd(), ".claude", "settings.json"));
+  // Load from user-level settings (~/.chipclaw/settings.json)
+  const userSettings = loadSettings(join(homedir(), ".chipclaw", "settings.json"));
+  // Load from project-level settings (.chipclaw/settings.json)
+  const projectSettings = loadSettings(join(process.cwd(), ".chipclaw", "settings.json"));
 
   for (const settings of [userSettings, projectSettings]) {
     if (!settings?.permissions) continue;

@@ -383,7 +383,7 @@ The MEMORY.md index is auto-updated when you write to the memory directory — d
 ## What NOT to Save
 - Code patterns or architecture (read the code instead)
 - Git history (use git log)
-- Anything already in CLAUDE.md
+- Anything already in CHIPCLAW.md
 - Ephemeral task details
 
 ## When to Recall

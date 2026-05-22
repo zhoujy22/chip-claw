@@ -19,22 +19,22 @@ cat > .mcp.json << 'EOF'
 EOF
 echo "✓ 创建 .mcp.json (MCP 测试服务器)"
 
-# 2. 复制 skill 到 .claude/skills/
-mkdir -p .claude/skills
-cp -r test/skills/* .claude/skills/
+# 2. 复制 skill 到 .chipclaw/skills/
+mkdir -p .chipclaw/skills
+cp -r test/skills/* .chipclaw/skills/
 echo "✓ 安装测试 skills (greet, commit)"
 
-# 3. 创建测试用的 CLAUDE.md（含 @include）
-mkdir -p .claude/rules
-echo "When the user greets you, respond in Chinese (中文)." > .claude/rules/chinese-greeting.md
-cat > CLAUDE.md << 'EOF'
+# 3. 创建测试用的 CHIPCLAW.md（含 @include）
+mkdir -p .chipclaw/rules
+echo "When the user greets you, respond in Chinese (中文)." > .chipclaw/rules/chinese-greeting.md
+cat > CHIPCLAW.md << 'EOF'
 # Test Project Rules
 
-@./.claude/rules/chinese-greeting.md
+@./.chipclaw/rules/chinese-greeting.md
 
 This is a test project for mini-claude feature validation.
 EOF
-echo "✓ 创建 CLAUDE.md (含 @include 指令) 和 rules"
+echo "✓ 创建 CHIPCLAW.md (含 @include 指令) 和 rules"
 
 # 4. 创建大文件用于测试持久化
 python3 -c "
@@ -51,8 +51,8 @@ EOF
 echo "✓ 创建 test/quote-test.js (引号规范化测试)"
 
 # 6. 创建自定义 agent 定义（Test 19: 自定义 Agent）
-mkdir -p .claude/agents
-cat > .claude/agents/reviewer.md << 'EOF'
+mkdir -p .chipclaw/agents
+cat > .chipclaw/agents/reviewer.md << 'EOF'
 ---
 name: reviewer
 description: Code review specialist — analyzes code quality and suggests improvements
@@ -67,7 +67,7 @@ You are a code review specialist. Analyze the given code for:
 Be concise. Only report actual issues, not stylistic preferences.
 Return a structured review with severity levels: [critical], [warning], [info].
 EOF
-echo "✓ 创建 .claude/agents/reviewer.md (自定义 agent 测试)"
+echo "✓ 创建 .chipclaw/agents/reviewer.md (自定义 agent 测试)"
 
 # 7. 检查 .env
 if [ -f .env ]; then

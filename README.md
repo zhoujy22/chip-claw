@@ -31,7 +31,7 @@ src/
   cli.ts          CLI 入口、REPL、参数解析
   agent.ts        Agent 循环、上下文管理、压缩管道
   tools.ts        工具定义（read/write/edit/grep/shell/web_fetch）、权限控制
-  prompt.ts       System Prompt 构建、CLAUDE.md/@include 解析
+  prompt.ts       System Prompt 构建、CHIPCLAW.md/@include 解析
   memory.ts       四类型记忆系统、语义召回（sideQuery 预取）
   skills.ts       Skill 发现与执行（inline / fork 模式）
   subagent.ts     SubAgent 类型（explore / plan / general + 自定义）

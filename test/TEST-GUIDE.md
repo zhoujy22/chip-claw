@@ -7,7 +7,7 @@
 ```bash
 cd claude-code-from-scratch
 
-# 一键配置测试环境（MCP、Skills、CLAUDE.md、大文件）
+# 一键配置测试环境（MCP、Skills、CHIPCLAW.md、大文件）
 bash test/setup.sh
 
 # 构建 TS 版
@@ -135,7 +135,7 @@ Read package.json, then tell me: how should I write code for this project? What 
 ### 5. @include 指令 + Rules 自动加载
 
 setup.sh 已经创建了：
-- `CLAUDE.md` 包含 `@./.claude/rules/chinese-greeting.md`
+- `CHIPCLAW.md` 包含 `@./.chipclaw/rules/chinese-greeting.md`
 - rule 内容：`When the user greets you, respond in Chinese`
 
 ```
@@ -472,9 +472,9 @@ Create a file test/tmp/long-file.txt with 50 numbered lines like "Line 1: test d
 
 ---
 
-### 19. 自定义 Agent（.claude/agents/）
+### 19. 自定义 Agent（.chipclaw/agents/）
 
-测试用户在 `.claude/agents/` 下定义自定义 agent 类型。
+测试用户在 `.chipclaw/agents/` 下定义自定义 agent 类型。
 
 先确认自定义 agent 可见：
 ```
@@ -527,4 +527,4 @@ bash test/cleanup.sh
 | 16 | 预算控制 | ☐ | ☐ | --max-turns 限制 |
 | 17 | Grep Search | ☐ | ☐ | 正则搜索 + include |
 | 18 | Write File | ☐ | ☐ | 新文件 + 自动建目录 |
-| 19 | 自定义 Agent | ☐ | ☐ | .claude/agents/ 定义 |
+| 19 | 自定义 Agent | ☐ | ☐ | .chipclaw/agents/ 定义 |
