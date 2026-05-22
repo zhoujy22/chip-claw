@@ -1,7 +1,7 @@
 ---
 name: commit
 description: Create a git commit with a summary of changes
-user-invocable: true
+user_invocable: true
 context: inline
 ---
 

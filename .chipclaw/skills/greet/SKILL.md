@@ -1,7 +1,7 @@
 ---
 name: greet
 description: Generate a creative greeting for the user
-user-invocable: true
+user_invocable: true
 context: inline
 ---
 

@@ -1,7 +1,7 @@
 ---
 name: lint-fix
 description: Run lint checks on Verilog files and auto-fix issues
-user-invocable: true
+user_invocable: true
 context: inline
 ---
 Run lint on the design files:

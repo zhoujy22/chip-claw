@@ -1,7 +1,7 @@
 ---
 name: verify
 description: Compile and simulate the current design, report results
-user-invocable: true
+user_invocable: true
 context: inline
 ---
 User wants to verify the current design. Steps:

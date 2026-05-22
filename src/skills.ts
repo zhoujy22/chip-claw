@@ -75,7 +75,7 @@ function parseSkillFile(
     const { meta, body } = parseFrontmatter(raw);
 
     const name = meta.name || basename(skillDir) || "unknown";
-    const userInvocable = meta["user-invocable"] !== "false";
+    const userInvocable = meta["user_invocable"] !== "false";
     const context = meta.context === "fork" ? "fork" as const : "inline" as const;
 
     // Parse allowed-tools (comma or JSON array format)
