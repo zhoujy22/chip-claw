@@ -1,7 +1,7 @@
 {
   "name": "chip-claw",
   "version": "0.1.0",
-  "description": "RTL generation, optimization and verification agent based on mini-claude architecture",
+  "description": "RTL generation, optimization and verification agent based on chipclaw architecture",
   "type": "module",
   "bin": {
     "chip-claw": "./dist/cli.js"

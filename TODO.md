@@ -1,6 +1,6 @@
 # Chip-Claw: RTL Generation / Optimization / Verification Agent
 
-基于 mini-claude 架构，构建面向芯片设计的 RTL Agent。
+基于 chipclaw 架构，构建面向芯片设计的 RTL Agent。
 
 > **最近更新**: 2026-05-20
 
@@ -109,7 +109,7 @@
   - [ ] `synth-analyst`：接收综合报告，返回关键路径/面积分析与优化建议
 
 - [ ] **P4-2** RTL 知识库 / Memory 系统
-  - 利用 mini-claude 的 memory 系统存储设计模式
+  - 利用 chipclaw 的 memory 系统存储设计模式
   - 常见 bug pattern 记忆
   - 项目特定约束记忆（时钟频率、接口标准、IP 库）
 

@@ -793,7 +793,7 @@ export async function executeTool(
       try {
         const res = await fetch(url, {
           signal: controller.signal,
-          headers: { "User-Agent": "mini-claude/1.0" },
+          headers: { "User-Agent": "chipclaw/1.0" },
         });
         clearTimeout(timeout);
         if (!res.ok) {

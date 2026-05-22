@@ -25,7 +25,7 @@ function parseArgs(): ParsedArgs {
   const args = process.argv.slice(2);
   let permissionMode: PermissionMode = "default";
   let thinking = false;
-  let model = process.env.MINI_CLAUDE_MODEL || "claude-opus-4-6";
+  let model = process.env.CHIPCLAW_MODEL || "claude-opus-4-6";
   let apiBase: string | undefined;
   let resume = false;
   let maxCost: number | undefined;
@@ -57,7 +57,7 @@ function parseArgs(): ParsedArgs {
       if (!isNaN(v)) maxTurns = v;
     } else if (args[i] === "--help" || args[i] === "-h") {
       console.log(`
-Usage: mini-claude [options] [prompt]
+Usage: chip-claw [options] [prompt]
 
 Options:
   --yolo, -y          Skip all confirmation prompts (bypassPermissions mode)
@@ -65,7 +65,7 @@ Options:
   --accept-edits      Auto-approve file edits, still confirm dangerous shell
   --dont-ask          Auto-deny anything needing confirmation (for CI)
   --thinking          Enable extended thinking (Anthropic only)
-  --model, -m         Model to use (default: claude-opus-4-6, or MINI_CLAUDE_MODEL env)
+  --model, -m         Model to use (default: claude-opus-4-6, or CHIPCLAW_MODEL env)
   --api-base URL      Use OpenAI-compatible API endpoint (key via env var)
   --resume            Resume the last session
   --max-cost USD      Stop when estimated cost exceeds this amount
@@ -82,14 +82,14 @@ REPL commands:
   /<skill-name>       Invoke a skill (e.g. /commit "fix types")
 
 Examples:
-  mini-claude "fix the bug in src/app.ts"
-  mini-claude --yolo "run all tests and fix failures"
-  mini-claude --plan "how would you refactor this?"
-  mini-claude --accept-edits "add error handling to api.ts"
-  mini-claude --max-cost 0.50 --max-turns 20 "implement feature X"
-  OPENAI_API_KEY=sk-xxx mini-claude --api-base https://aihubmix.com/v1 --model gpt-4o "hello"
-  mini-claude --resume
-  mini-claude  # starts interactive REPL
+  chip-claw "fix the bug in src/app.ts"
+  chip-claw --yolo "run all tests and fix failures"
+  chip-claw --plan "how would you refactor this?"
+  chip-claw --accept-edits "add error handling to api.ts"
+  chip-claw --max-cost 0.50 --max-turns 20 "implement feature X"
+  OPENAI_API_KEY=sk-xxx chip-claw --api-base https://aihubmix.com/v1 --model gpt-4o "hello"
+  chip-claw --resume
+  chip-claw  # starts interactive REPL
 `);
       process.exit(0);
     } else {

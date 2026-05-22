@@ -38,10 +38,10 @@ node dist/cli.js --yolo "你的提示词"
 
 **Python 版**：
 ```bash
-python -m mini_claude --yolo
+python -m chipclaw --yolo
 
 # 或 one-shot
-python -m mini_claude --yolo "你的提示词"
+python -m chipclaw --yolo "你的提示词"
 ```
 
 ---
@@ -91,7 +91,7 @@ Read the files src/frontmatter.ts, src/session.ts, and src/skills.ts at the same
 
 Python 版：
 ```
-Read the files python/mini_claude/frontmatter.py and python/mini_claude/session.py at the same time, then tell me each file's line count.
+Read the files python/chipclaw/frontmatter.py and python/chipclaw/session.py at the same time, then tell me each file's line count.
 ```
 
 ---
@@ -170,7 +170,7 @@ Read the file test/large-file.txt
 ```
 
 ✅ 预期输出包含：
-- `[Result too large (XX.X KB, 1000 lines). Full output saved to /home/.../.mini-claude/tool-results/xxx-read_file.txt]`
+- `[Result too large (XX.X KB, 1000 lines). Full output saved to /home/.../.chipclaw/tool-results/xxx-read_file.txt]`
 - `Preview (first 200 lines):`
 - 只显示前 200 行的预览
 
@@ -265,7 +265,7 @@ Use the agent tool with type "plan" to design a plan for adding a "help" REPL co
 
 **general agent**：
 ```
-Use the agent tool with type "general" to create a file called /tmp/mini-claude-agent-test.txt with the content "agent test passed", then read it back.
+Use the agent tool with type "general" to create a file called /tmp/chipclaw-agent-test.txt with the content "agent test passed", then read it back.
 ```
 
 ✅ 预期：
