@@ -1,6 +1,6 @@
 // Sub-agent system — fork-return pattern with built-in + custom agent types.
 // Mirrors Claude Code's AgentTool: explore (read-only), plan (structured), general (full tools),
-// plus user-defined agents via .claude/agents/*.md.
+// plus user-defined agents via .chipclaw/agents/*.md.
 
 import { existsSync, readdirSync, readFileSync } from "fs";
 import { join } from "path";
@@ -105,9 +105,9 @@ function discoverCustomAgents(): Map<string, CustomAgentDef> {
   const agents = new Map<string, CustomAgentDef>();
 
   // User-level (lower priority)
-  loadAgentsFromDir(join(homedir(), ".claude", "agents"), agents);
+  loadAgentsFromDir(join(homedir(), ".chipclaw", "agents"), agents);
   // Project-level (higher priority, overwrites)
-  loadAgentsFromDir(join(process.cwd(), ".claude", "agents"), agents);
+  loadAgentsFromDir(join(process.cwd(), ".chipclaw", "agents"), agents);
 
   cachedCustomAgents = agents;
   return agents;

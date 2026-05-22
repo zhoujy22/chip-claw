@@ -817,7 +817,7 @@ export class Agent {
   // ─── Plan mode helpers ──────────────────────────────────────
 
   private generatePlanFilePath(): string {
-    const dir = join(homedir(), ".claude", "plans");
+    const dir = join(homedir(), ".chipclaw", "plans");
     if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
     return join(dir, `plan-${this.sessionId}.md`);
   }

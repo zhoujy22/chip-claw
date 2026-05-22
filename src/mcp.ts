@@ -2,7 +2,7 @@
  * MCP Client — connects to stdio-based MCP servers, discovers and forwards tool calls.
  * Uses raw JSON-RPC over stdio (no SDK dependency for simplicity).
  *
- * Config is read from .claude/settings.json and ~/.claude/settings.json:
+ * Config is read from .chipclaw/settings.json and ~/.chipclaw/settings.json:
  *   { "mcpServers": { "name": { "command": "...", "args": [...], "env": {...} } } }
  *
  * Each MCP tool is exposed with a "mcp__serverName__toolName" prefix to avoid conflicts.
@@ -230,12 +230,12 @@ export class McpManager {
   private loadConfigs(): Record<string, McpServerConfig> {
     const merged: Record<string, McpServerConfig> = {};
 
-    // 1. Global: ~/.claude/settings.json
-    const globalPath = join(homedir(), ".claude", "settings.json");
+    // 1. Global: ~/.chipclaw/settings.json
+    const globalPath = join(homedir(), ".chipclaw", "settings.json");
     this.mergeConfigFile(globalPath, merged);
 
-    // 2. Project: .claude/settings.json (cwd)
-    const projectPath = join(process.cwd(), ".claude", "settings.json");
+    // 2. Project: .chipclaw/settings.json (cwd)
+    const projectPath = join(process.cwd(), ".chipclaw", "settings.json");
     this.mergeConfigFile(projectPath, merged);
 
     // 3. Also check .mcp.json (Claude Code convention)

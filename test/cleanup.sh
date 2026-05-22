@@ -7,10 +7,10 @@ set -e
 echo "=== 清理测试环境 ==="
 
 rm -f .mcp.json
-rm -f CLAUDE.md
-rm -rf .claude/skills/greet .claude/skills/commit
-rm -rf .claude/rules
-rm -rf .claude/agents
+rm -f CHIPCLAW.md
+rm -rf .chipclaw/skills/greet .chipclaw/skills/commit
+rm -rf .chipclaw/rules
+rm -rf .chipclaw/agents
 rm -f test/quote-test.js
 rm -rf test/tmp
 rm -rf ~/.mini-claude/projects/*/memory/*

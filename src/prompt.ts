@@ -8,7 +8,7 @@ import { buildAgentDescriptions } from "./subagent.js";
 import { getDeferredToolNames } from "./tools.js";
 
 // ─── @include resolution ─────────────────────────────────────
-// Resolves @./path, @~/path, @/path references in CLAUDE.md files.
+// Resolves @./path, @~/path, @/path references in CHIPCLAW.md files.
 // Mirrors Claude Code's include directive: recursively replaces @-references
 // with file contents, preventing circular includes via a visited set.
 
@@ -46,10 +46,10 @@ function resolveIncludes(
   });
 }
 
-// ─── .claude/rules/*.md auto-loader ─────────────────────────
+// ─── .chipclaw/rules/*.md auto-loader ────────────────────────
 
 function loadRulesDir(dir: string): string {
-  const rulesDir = join(dir, ".claude", "rules");
+  const rulesDir = join(dir, ".chipclaw", "rules");
   if (!existsSync(rulesDir)) return "";
   try {
     const files = readdirSync(rulesDir)
@@ -70,13 +70,13 @@ function loadRulesDir(dir: string): string {
   }
 }
 
-// ─── CLAUDE.md loader ────────────────────────────────────────
+// ─── CHIPCLAW.md loader ──────────────────────────────────────
 
-export function loadClaudeMd(): string {
+export function loadChipclawMd(): string {
   const parts: string[] = [];
   let dir = process.cwd();
   while (true) {
-    const file = join(dir, "CLAUDE.md");
+    const file = join(dir, "CHIPCLAW.md");
     if (existsSync(file)) {
       try {
         let content = readFileSync(file, "utf-8");
@@ -88,12 +88,12 @@ export function loadClaudeMd(): string {
     if (parent === dir) break;
     dir = parent;
   }
-  // Load .claude/rules/*.md from cwd
+  // Load .chipclaw/rules/*.md from cwd
   const rules = loadRulesDir(process.cwd());
-  const claudeMd = parts.length > 0
-    ? "\n\n# Project Instructions (CLAUDE.md)\n" + parts.join("\n\n---\n\n")
+  const chipclawMd = parts.length > 0
+    ? "\n\n# Project Instructions (CHIPCLAW.md)\n" + parts.join("\n\n---\n\n")
     : "";
-  return claudeMd + rules;
+  return chipclawMd + rules;
 }
 
 // ─── Git context ─────────────────────────────────────────────
@@ -232,7 +232,7 @@ export function buildSystemPrompt(): string {
     ? (process.env.ComSpec || "cmd.exe")
     : (process.env.SHELL || "/bin/sh");
   const gitContext = getGitContext();
-  const claudeMd = loadClaudeMd();
+  const chipclawMd = loadChipclawMd();
   const memorySection = buildMemoryPromptSection();
   const skillsSection = buildSkillDescriptions();
   const agentSection = buildAgentDescriptions();
@@ -248,7 +248,7 @@ export function buildSystemPrompt(): string {
     .split("{{platform}}").join(platform)
     .split("{{shell}}").join(shell)
     .split("{{git_context}}").join(gitContext)
-    .split("{{claude_md}}").join(claudeMd)
+    .split("{{claude_md}}").join(chipclawMd)
     .split("{{memory}}").join(memorySection)
     .split("{{skills}}").join(skillsSection)
     .split("{{agents}}").join(agentSection)
