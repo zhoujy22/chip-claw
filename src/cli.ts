@@ -232,7 +232,7 @@ async function runRepl(agent: Agent) {
       if (input === "/skills") {
         const skills = discoverSkills();
         if (skills.length === 0) {
-          printInfo("No skills found. Add skills to .claude/skills/<name>/SKILL.md");
+          printInfo("No skills found. Add skills to .chipclaw/skills/<name>/SKILL.md");
         } else {
           printInfo(`${skills.length} skills:`);
           for (const s of skills) {

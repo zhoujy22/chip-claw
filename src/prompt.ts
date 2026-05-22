@@ -46,10 +46,10 @@ function resolveIncludes(
   });
 }
 
-// ─── .claude/rules/*.md auto-loader ─────────────────────────
+// ─── .chipclaw/rules/*.md auto-loader ───────────────────────
 
 function loadRulesDir(dir: string): string {
-  const rulesDir = join(dir, ".claude", "rules");
+  const rulesDir = join(dir, ".chipclaw", "rules");
   if (!existsSync(rulesDir)) return "";
   try {
     const files = readdirSync(rulesDir)
@@ -88,7 +88,7 @@ export function loadClaudeMd(): string {
     if (parent === dir) break;
     dir = parent;
   }
-  // Load .claude/rules/*.md from cwd
+  // Load .chipclaw/rules/*.md from cwd
   const rules = loadRulesDir(process.cwd());
   const claudeMd = parts.length > 0
     ? "\n\n# Project Instructions (CLAUDE.md)\n" + parts.join("\n\n---\n\n")
@@ -115,7 +115,7 @@ export function getGitContext(): string {
 
 // ─── System prompt template (embedded) ──────────────────────
 
-const SYSTEM_PROMPT_TEMPLATE = `You are Chip-Claw, an RTL design assistant built on the Mini Claude Code architecture.
+const SYSTEM_PROMPT_TEMPLATE = `You are ChipClaw, an RTL design assistant for hardware development.
 You are an interactive agent that helps users with RTL (Register Transfer Level) design tasks including Verilog code generation, optimization, and verification. Use the instructions below and the tools available to you to assist the user.
 
 IMPORTANT: Assist with authorized security testing, defensive security, CTF challenges, and educational contexts. Refuse requests for destructive techniques, DoS attacks, mass targeting, supply chain compromise, or detection evasion for malicious purposes. Dual-use security tools (C2 frameworks, credential testing, exploit development) require clear authorization context: pentesting engagements, CTF competitions, security research, or defensive use cases.
