@@ -2,7 +2,7 @@
 
 通过自然语言交互，生成、优化和验证 Verilog RTL 代码的智能体。
 
-基于 [mini-claude](https://github.com/Windy3f3f3f3f/claude-code-from-scratch) 架构 —— 用 TypeScript 从零实现的 Claude Code Agent Loop。
+基于 [mini-claude](https://github.com/Windy3f3f3f3f/claude-code-from-scratch) 架构改造 —— 用 TypeScript 从零实现的 RTL 设计 Agent。
 
 ## 功能特性
 
@@ -102,6 +102,12 @@ export OPENAI_API_KEY=sk-xxx
 export OPENAI_BASE_URL=https://api.openai.com/v1
 ```
 
+> **注意**：环境变量 `MINI_CLAUDE_MODEL` 已重命名为 `CHIPCLAW_MODEL`。如需通过环境变量指定模型，请使用新名称：
+> ```bash
+> export CHIPCLAW_MODEL=claude-sonnet-4-6
+> ```
+> 若不设置，默认使用 `claude-opus-4-6`。
+
 ### 运行
 
 ```bash
@@ -126,7 +132,7 @@ node dist/cli.js --yolo --model claude-sonnet-4-6 "生成一个 AXI4-Lite 从设
   --accept-edits      自动批准文件编辑，仍确认危险 shell 命令
   --dont-ask          自动拒绝所有需确认的操作（CI 模式）
   --thinking          启用扩展思考（仅 Anthropic）
-  --model, -m MODEL   指定模型（默认: claude-opus-4-6，或 MINI_CLAUDE_MODEL 环境变量）
+  --model, -m MODEL   指定模型（默认: claude-opus-4-6，或 CHIPCLAW_MODEL 环境变量）
   --api-base URL      使用 OpenAI 兼容接口
   --resume            恢复上次会话
   --max-cost USD      预估费用超过此值时停止

@@ -36,7 +36,7 @@ function getProjectHash(): string {
 }
 
 export function getMemoryDir(): string {
-  const dir = join(homedir(), ".mini-claude", "projects", getProjectHash(), "memory");
+  const dir = join(homedir(), ".chipclaw", "projects", getProjectHash(), "memory");
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
   return dir;
 }

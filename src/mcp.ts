@@ -107,7 +107,7 @@ class McpConnection {
     await this.sendRequest("initialize", {
       protocolVersion: "2024-11-05",
       capabilities: {},
-      clientInfo: { name: "mini-claude", version: "1.0.0" },
+      clientInfo: { name: "chipclaw", version: "1.0.0" },
     });
     this.sendNotification("notifications/initialized");
   }

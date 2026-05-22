@@ -750,7 +750,7 @@ export class Agent {
     const THRESHOLD = 30 * 1024; // 30 KB
     if (Buffer.byteLength(result) <= THRESHOLD) return result;
 
-    const dir = join(homedir(), ".mini-claude", "tool-results");
+    const dir = join(homedir(), ".chipclaw", "tool-results");
     mkdirSync(dir, { recursive: true });
     const filename = `${Date.now()}-${toolName}.txt`;
     const filepath = join(dir, filename);
