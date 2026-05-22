@@ -1,4 +1,4 @@
-# Mini Claude 功能测试指南
+# ChipClaw 功能测试指南
 
 手动测试 19 项功能。全部使用 `--yolo` 模式。TS 和 Python 各测一遍。
 
@@ -446,7 +446,7 @@ Use grep_search to find "DANGEROUS_PATTERNS" in the project
 
 ```
 Create a new file at test/tmp/nested/hello.txt with the content:
-Line 1: Hello from Mini Claude
+Line 1: Hello from ChipClaw
 Line 2: This is a write test
 Line 3: End of file
 ```
