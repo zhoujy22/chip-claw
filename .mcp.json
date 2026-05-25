@@ -3,6 +3,14 @@
     "test": {
       "command": "node",
       "args": ["test/mcp-server.cjs"]
+    },
+    "eda-mcp": {
+      "command": "docker",
+      "args": [
+        "run", "--rm", "-i",
+        "-v", "./workspace:/workspace",
+        "eda-mcp"
+      ]
     }
   }
 }

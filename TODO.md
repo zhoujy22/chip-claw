@@ -2,7 +2,7 @@
 
 基于 chipclaw 架构，构建面向芯片设计的 RTL Agent。
 
-> **最近更新**: 2026-05-20
+> **最近更新**: 2026-05-25
 
 ---
 
@@ -14,12 +14,12 @@
   - 清理无关文件（docs教程、demo.mp4、Docsify站点文件、assets）
   - 配置 git remote：origin → zhoujy22/chip-claw.git，upstream → 原仓库
 
-- [ ] **P0-2** RTL 领域工具链集成
-  - 集成 Verilog/SystemVerilog 编译器（iverilog / Verilator）
-  - 集成仿真器（iverilog + vvp / Verilator sim）
-  - 集成综合工具（Yosys）接口
-  - 集成波形查看能力（VCD 解析）
-  - 集成 lint 工具（Verilator --lint-only / svlint）
+- [x] **P0-2** RTL 领域工具链集成
+  - [x] 集成 Verilog/SystemVerilog 编译器（iverilog / Verilator）— via eda-mcp Docker MCP Server
+  - [x] 集成仿真器（iverilog + vvp / Verilator sim）— via eda-mcp `iverilog_simulate`
+  - [x] 集成综合工具（Yosys）接口 — via eda-mcp `yosys_synth`
+  - [x] 集成波形查看能力（VCD 解析）— via eda-mcp `waveform_*` 工具组（6 个）
+  - [x] 集成 lint 工具（Verilator --lint-only / svlint）— via eda-mcp `verilator_lint`
 
 - [x] **P0-3a** RTL 专用 Tools — API 设计文档 ✅
   - `docs/tools/rtl_compile.md` — 编译工具接口定义与返回格式
@@ -131,18 +131,17 @@
 
 | 阶段 | 状态 | 已完成项 | 阻塞项 |
 |------|------|----------|--------|
-| **P0 基础设施** | 🔶 进行中 | 项目初始化、工具 API 文档 | 工具链安装(P0-2)、工具代码实现(P0-3b) |
-| **P1 RTL 生成** | 🔶 进行中 | System Prompt、gen-module skill | 端到端验证依赖 P0-2/P0-3b |
+| **P0 基础设施** | 🔶 进行中 | 项目初始化、工具 API 文档、EDA 工具链集成(eda-mcp) | 工具代码实现(P0-3b) |
+| **P1 RTL 生成** | 🔶 进行中 | System Prompt、gen-module skill | 端到端验证依赖 P0-3b 或可直接使用 eda-mcp 工具 |
 | **P2 RTL 优化** | ⬜ 未开始 | — | 依赖 P0 完成 |
 | **P3 RTL 验证** | ⬜ 未开始 | — | 依赖 P0 完成 |
 | **P4 SubAgent/Skill** | 🔶 进行中 | 3 个 Skill + 1 个 Agent | 剩余 Skill 和 Agent 定义 |
 
 ### 下一步优先级
 
-1. **P0-2**: 安装 iverilog / Verilator / Yosys，验证本地可用
-2. **P0-3b**: 基于 docs/tools/ 的 API 设计实现 TypeScript 工具代码
-3. **P1-2**: 工具就绪后端到端验证 gen-module 流程
-4. **P4-3**: 补充 `/optimize` 和 `/coverage` skill
+1. **P0-3b**: 基于 docs/tools/ 的 API 设计实现 TypeScript 工具代码（或评估直接使用 eda-mcp MCP 工具替代）
+2. **P1-2**: 工具就绪后端到端验证 gen-module 流程（eda-mcp 已可支持）
+3. **P4-3**: 补充 `/optimize` 和 `/coverage` skill
 
 ---
 
@@ -150,7 +149,7 @@
 
 | 里程碑 | 目标 | 预估周期 | 状态 |
 |--------|------|----------|------|
-| **M0** | 工具链集成完成，能编译/仿真 Verilog | 1 周 | 🔶 API 设计完成，待实现 |
+| **M0** | 工具链集成完成，能编译/仿真 Verilog | 1 周 | ✅ eda-mcp 集成完成 |
 | **M1** | 能根据自然语言描述生成可编译的 RTL + testbench | 2-3 周 | 🔶 Prompt + Skill 就绪 |
 | **M2** | 能分析综合报告并给出优化建议 | 1-2 周 | ⬜ 未开始 |
 | **M3** | 完整的 生成→验证→修复 自动循环 | 2-3 周 | ⬜ 未开始 |
@@ -165,7 +164,7 @@
 | Verilog 编译 | iverilog / Verilator | 开源免费 |
 | 仿真 | iverilog+vvp / Verilator | Verilator 更快 |
 | 综合 | Yosys | 开源综合工具 |
-| 波形 | VCD 文本解析 / pyDigitalWaveTools | Agent 可直接分析 |
+| 波形 | waveform-cli (via eda-mcp) / VCD 文本解析 | Agent 可通过 MCP 工具直接分析 |
 | 形式化验证 | SymbiYosys | 基于 Yosys |
 | Testbench 框架 | cocotb (Python) | 易与 Agent 集成 |
 | Lint | Verilator --lint-only / svlint | 快速静态检查 |
