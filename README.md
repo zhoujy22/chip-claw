@@ -53,7 +53,30 @@ src/
 - FSM：双进程风格（状态寄存器 + 次态/输出逻辑）
 - Testbench：`tb_<module>.v`，包含 `$dumpfile`/`$dumpvars`，以 `TEST PASSED`/`TEST FAILED` 结尾
 
-### RTL 工具（API 已设计，实现开发中）
+### EDA 工具链（via eda-mcp）
+
+通过 [eda-mcp](https://github.com/LittleBlackCQ/eda-mcp) 子模块，以 Docker MCP Server 形式集成开源 EDA 工具链。Agent 可直接通过 tool call 执行综合、仿真、lint 和波形分析。
+
+| MCP 工具 | 底层引擎 | 说明 |
+|----------|----------|------|
+| `yosys_synth` | Yosys | Verilog 综合为门级/JSON 网表 |
+| `iverilog_simulate` | Icarus Verilog | 事件驱动仿真，生成 VCD 波形 |
+| `verilator_lint` | Verilator | 静态 lint 检查 |
+| `waveform_*`（6 个） | waveform-cli | VCD/FST 波形分析（层级、信号值、事件查找） |
+| `list_files` / `read_file` / `write_file` | Python stdlib | workspace 文件读写 |
+
+**首次使用需构建 Docker 镜像：**
+
+```bash
+cd eda-mcp
+docker build -t eda-mcp .
+# 国内网络可指定镜像源：
+# docker build --build-arg PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple -t eda-mcp .
+```
+
+构建完成后，启动 chip-claw 即自动连接 eda-mcp server，工具以 `mcp__eda-mcp__<tool>` 前缀暴露给 Agent。EDA 工件存放在 `workspace/` 目录中。
+
+### RTL 工具接口（API 已设计，实现开发中）
 
 | 工具 | 说明 | 接口文档 |
 |------|------|----------|
@@ -76,12 +99,13 @@ src/
 ### 前置条件
 
 - Node.js >= 18.17
+- Docker（用于运行 eda-mcp EDA 工具链）
 - API Key：Anthropic（`ANTHROPIC_API_KEY`）或 OpenAI 兼容接口（`OPENAI_API_KEY` + `OPENAI_BASE_URL`）
 
 ### 安装与构建
 
 ```bash
-git clone https://github.com/zhoujy22/chip-claw.git
+git clone --recurse-submodules https://github.com/zhoujy22/chip-claw.git
 cd chip-claw
 npm install
 npm run build
