@@ -28,13 +28,14 @@
   - `docs/tools/rtl_lint.md` — Lint 工具接口定义与返回格式
   - `docs/tools/waveform_analyze.md` — 波形分析工具接口定义与返回格式
 
-- [ ] **P0-3b** RTL 专用 Tools — TypeScript 实现
-  - `rtl_compile`: 编译 Verilog/SV 文件，解析 stderr 返回结构化错误
-  - `rtl_simulate`: 运行仿真，判定 pass/fail，返回日志与波形路径
-  - `rtl_synthesize`: 调用 Yosys 综合，解析 stat 输出
-  - `rtl_lint`: 代码静态检查，解析 lint 诊断
-  - `waveform_analyze`: VCD 文本解析器（纯 TypeScript 实现）
-  - 在 `src/tools.ts` 中注册所有新工具
+- [x] **P0-3b** RTL 专用 Tools — TypeScript 封装实现
+  - [x] `rtl_compile`: 基于 eda-mcp `verilator_lint` 做语法/可编译性检查，返回结构化诊断
+  - [x] `rtl_simulate`: 封装 eda-mcp `iverilog_simulate`，判定 pass/fail，返回日志与波形路径
+  - [x] `rtl_synthesize`: 封装 eda-mcp `yosys_synth`，返回综合日志与输出文件路径
+  - [x] `rtl_lint`: 封装 eda-mcp `verilator_lint`，解析 lint 诊断
+  - [x] `waveform_analyze`: 封装 eda-mcp `waveform_*` 工具组，支持信号列表/summary/transitions/table 查询
+  - [x] 在 `src/tools.ts` 中注册所有新工具，并在 `src/agent.ts` 中路由到 eda-mcp
+  - [ ] 后续增强：独立 compile-only MCP 工具、纯 TypeScript VCD 文本解析器、更多综合 target
 
 ---
 
@@ -131,16 +132,16 @@
 
 | 阶段 | 状态 | 已完成项 | 阻塞项 |
 |------|------|----------|--------|
-| **P0 基础设施** | 🔶 进行中 | 项目初始化、工具 API 文档、EDA 工具链集成(eda-mcp) | 工具代码实现(P0-3b) |
-| **P1 RTL 生成** | 🔶 进行中 | System Prompt、gen-module skill | 端到端验证依赖 P0-3b 或可直接使用 eda-mcp 工具 |
+| **P0 基础设施** | ✅ 基本完成 | 项目初始化、工具 API 文档、EDA 工具链集成(eda-mcp)、RTL 工具封装(P0-3b) | compile-only/VCD 原生解析等增强项 |
+| **P1 RTL 生成** | 🔶 进行中 | System Prompt、gen-module skill、RTL 工具封装 | 端到端验证 gen-module 流程 |
 | **P2 RTL 优化** | ⬜ 未开始 | — | 依赖 P0 完成 |
 | **P3 RTL 验证** | ⬜ 未开始 | — | 依赖 P0 完成 |
 | **P4 SubAgent/Skill** | 🔶 进行中 | 3 个 Skill + 1 个 Agent | 剩余 Skill 和 Agent 定义 |
 
 ### 下一步优先级
 
-1. **P0-3b**: 基于 docs/tools/ 的 API 设计实现 TypeScript 工具代码（或评估直接使用 eda-mcp MCP 工具替代）
-2. **P1-2**: 工具就绪后端到端验证 gen-module 流程（eda-mcp 已可支持）
+1. **P1-2**: 端到端验证 gen-module 流程（生成 RTL/TB → `rtl_lint`/`rtl_simulate` → 修复）
+2. **P0 增强**: 补独立 compile-only MCP 工具、纯 TypeScript VCD 文本解析器、更多综合 target
 3. **P4-3**: 补充 `/optimize` 和 `/coverage` skill
 
 ---

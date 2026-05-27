@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import OpenAI from "openai";
 import chalk from "chalk";
-import { toolDefinitions, executeTool, checkPermission, CONCURRENCY_SAFE_TOOLS, getActiveToolDefinitions, getDeferredToolNames, type ToolDef, type PermissionMode } from "./tools.js";
+import { toolDefinitions, executeTool, checkPermission, CONCURRENCY_SAFE_TOOLS, getActiveToolDefinitions, getDeferredToolNames, isRtlToolName, type ToolDef, type PermissionMode } from "./tools.js";
 import {
   printAssistantText,
   printToolCall,
@@ -28,7 +28,7 @@ import { McpManager } from "./mcp.js";
 import * as readline from "readline";
 import { randomUUID } from "crypto";
 import { existsSync, readFileSync, mkdirSync, writeFileSync } from "fs";
-import { join } from "path";
+import { join, relative as relativePath, resolve as resolvePath } from "path";
 import { homedir } from "os";
 
 // ─── Retry with exponential backoff ──────────────────────────
@@ -770,9 +770,315 @@ export class Agent {
     if (name === "enter_plan_mode" || name === "exit_plan_mode") return await this.executePlanModeTool(name);
     if (name === "agent") return this.executeAgentTool(input);
     if (name === "skill") return this.executeSkillTool(input);
+    if (isRtlToolName(name)) return this.executeRtlToolCall(name, input);
     // Route MCP tool calls to the MCP manager
     if (this.mcpManager.isMcpTool(name)) return this.mcpManager.callTool(name, input);
     return executeTool(name, input, this.readFileState);
+  }
+
+  private async executeRtlToolCall(
+    name: string,
+    input: Record<string, any>
+  ): Promise<string> {
+    try {
+      switch (name) {
+        case "rtl_compile":
+          return await this.executeRtlCompile(input);
+        case "rtl_simulate":
+          return await this.executeRtlSimulate(input);
+        case "rtl_synthesize":
+          return await this.executeRtlSynthesize(input);
+        case "rtl_lint":
+          return await this.executeRtlLint(input);
+        case "waveform_analyze":
+          return await this.executeWaveformAnalyze(input);
+        default:
+          return this.rtlError(name, `Unknown RTL tool: ${name}`);
+      }
+    } catch (err: any) {
+      return this.rtlError(name, err.message || String(err));
+    }
+  }
+
+  private async executeRtlCompile(input: Record<string, any>): Promise<string> {
+    const files = this.requiredRtlFiles("rtl_compile", input);
+    if (typeof files === "string") return files;
+    const top = this.resolveTopModule(input.top_module, files);
+    if (!top) return this.rtlError("rtl_compile", "top_module is required or must be inferable from source files.");
+
+    const notes = [
+      "eda-mcp currently has no compile-only tool; rtl_compile uses verilator_lint as a syntax/compile-check backend.",
+    ];
+    if (input.tool && input.tool !== "verilator") notes.push(`requested tool '${input.tool}' mapped to verilator_lint`);
+    if (input.include_dirs || input.defines) {
+      notes.push("include_dirs/defines are accepted by the public API but are not forwarded by the current eda-mcp backend");
+    }
+
+    return this.callAndFormatRtlMcp("rtl_compile", "mcp__eda-mcp__verilator_lint", {
+      sources: files,
+      top,
+      timeout_s: this.timeoutSeconds(input.timeout, 30),
+    }, notes);
+  }
+
+  private async executeRtlLint(input: Record<string, any>): Promise<string> {
+    const files = this.requiredRtlFiles("rtl_lint", input);
+    if (typeof files === "string") return files;
+    const top = this.resolveTopModule(input.top_module, files);
+    if (!top) return this.rtlError("rtl_lint", "top_module is required or must be inferable from source files.");
+
+    const notes: string[] = [];
+    if (input.tool && input.tool !== "verilator") notes.push(`requested lint backend '${input.tool}' is not exposed by eda-mcp; using verilator_lint`);
+    if (Array.isArray(input.rules) && input.rules.length > 0) {
+      notes.push("rules are accepted by the public API but are not forwarded by the current eda-mcp backend");
+    }
+
+    return this.callAndFormatRtlMcp("rtl_lint", "mcp__eda-mcp__verilator_lint", {
+      sources: files,
+      top,
+      timeout_s: this.timeoutSeconds(input.timeout, 30),
+    }, notes);
+  }
+
+  private async executeRtlSimulate(input: Record<string, any>): Promise<string> {
+    const files = this.requiredRtlFiles("rtl_simulate", input);
+    if (typeof files === "string") return files;
+    const top = String(input.top_module || "").trim();
+    if (!top) return this.rtlError("rtl_simulate", "top_module is required and should be the testbench module.");
+    if (input.tool && input.tool !== "iverilog") {
+      return this.rtlError("rtl_simulate", `unsupported simulator '${input.tool}'; eda-mcp currently exposes iverilog_simulate`);
+    }
+
+    const notes: string[] = [];
+    if (Array.isArray(input.plusargs) && input.plusargs.length > 0) {
+      notes.push("plusargs are accepted by the public API but are not forwarded by the current eda-mcp backend");
+    }
+    if (input.dump_waves === false) {
+      notes.push("dump_waves=false is advisory; eda-mcp reports a VCD path only when the testbench emits one");
+    }
+
+    return this.callAndFormatRtlMcp("rtl_simulate", "mcp__eda-mcp__iverilog_simulate", {
+      sources: files,
+      top,
+      timeout_s: this.timeoutSeconds(input.timeout, 60),
+    }, notes);
+  }
+
+  private async executeRtlSynthesize(input: Record<string, any>): Promise<string> {
+    const files = this.requiredRtlFiles("rtl_synthesize", input);
+    if (typeof files === "string") return files;
+    const top = String(input.top_module || "").trim();
+    if (!top) return this.rtlError("rtl_synthesize", "top_module is required.");
+
+    const requestedTarget = String(input.target || "generic");
+    if (requestedTarget !== "generic") {
+      return this.rtlError("rtl_synthesize", `unsupported synthesis target '${requestedTarget}'; current eda-mcp backend supports generic Yosys output only`);
+    }
+
+    const notes: string[] = [];
+    if (input.flatten) notes.push("flatten is accepted by the public API but is not forwarded by the current eda-mcp backend");
+    const outputFormat = input.output_verilog === false ? "json" : "verilog";
+
+    return this.callAndFormatRtlMcp("rtl_synthesize", "mcp__eda-mcp__yosys_synth", {
+      sources: files,
+      top,
+      target: outputFormat,
+      timeout_s: this.timeoutSeconds(input.timeout, 120),
+    }, notes);
+  }
+
+  private async executeWaveformAnalyze(input: Record<string, any>): Promise<string> {
+    const vcdPath = this.toWorkspacePath(String(input.vcd_file || "").trim());
+    if (!vcdPath) return this.rtlError("waveform_analyze", "vcd_file is required.");
+    const signals = Array.isArray(input.signals) ? input.signals.map(String).filter(Boolean) : [];
+    if (signals.length === 0) return this.rtlError("waveform_analyze", "signals must contain at least one signal name or '*'.");
+
+    const maxTransitions = typeof input.max_transitions === "number" ? input.max_transitions : 200;
+    const format = String(input.format || "transitions");
+    const start = this.timeValue(input.time_range?.start);
+    const end = this.timeValue(input.time_range?.end);
+
+    if (signals.includes("*")) {
+      return this.callAndFormatRtlMcp("waveform_analyze", "mcp__eda-mcp__waveform_list_signals", {
+        vcd_path: vcdPath,
+        limit: maxTransitions,
+      }, ["signals=['*'] maps to waveform_list_signals"]);
+    }
+
+    const perSignal: Record<string, any> = {};
+    const notes: string[] = [];
+    for (const signal of signals) {
+      if (format === "summary") {
+        perSignal[signal] = await this.callRtlMcpParsed("mcp__eda-mcp__waveform_signal_info", {
+          vcd_path: vcdPath,
+          signal,
+        });
+      } else if (format === "table") {
+        const timeIndices = [start, end].filter((v): v is number => typeof v === "number");
+        const args: Record<string, any> = { vcd_path: vcdPath, signal };
+        if (timeIndices.length > 0) args.time_indices = Array.from(new Set(timeIndices));
+        else {
+          args.time_index = 0;
+          notes.push("table format samples time_index=0 when no numeric time_range is provided");
+        }
+        perSignal[signal] = await this.callRtlMcpParsed("mcp__eda-mcp__waveform_read_signal", args);
+      } else {
+        const args: Record<string, any> = { vcd_path: vcdPath, signal, limit: maxTransitions };
+        if (typeof start === "number") args.start = start;
+        if (typeof end === "number") args.end = end;
+        perSignal[signal] = await this.callRtlMcpParsed("mcp__eda-mcp__waveform_find_signal_events", args);
+      }
+    }
+
+    return JSON.stringify({
+      success: Object.values(perSignal).every((result) => this.inferRtlSuccess(result, "")),
+      tool: "waveform_analyze",
+      backend: "eda-mcp",
+      format,
+      notes,
+      vcd_file: vcdPath,
+      signals: perSignal,
+    }, null, 2);
+  }
+
+  private requiredRtlFiles(tool: string, input: Record<string, any>): string[] | string {
+    if (!Array.isArray(input.files) || input.files.length === 0) {
+      return this.rtlError(tool, "files must be a non-empty array.");
+    }
+    return input.files.map((file: unknown) => this.toWorkspacePath(String(file)));
+  }
+
+  private resolveTopModule(inputTop: unknown, files: string[]): string | null {
+    const explicit = String(inputTop || "").trim();
+    if (explicit) return explicit;
+    for (const file of files) {
+      const localPath = this.localPathForWorkspaceFile(file);
+      if (!existsSync(localPath)) continue;
+      const text = readFileSync(localPath, "utf-8");
+      const match = text.match(/\bmodule\s+([A-Za-z_][A-Za-z0-9_$]*)\b/);
+      if (match) return match[1];
+    }
+    return null;
+  }
+
+  private toWorkspacePath(filePath: string): string {
+    const normalized = filePath.replace(/\\/g, "/");
+    if (normalized.startsWith("workspace/")) return normalized.slice("workspace/".length);
+    const abs = resolvePath(filePath);
+    const workspaceAbs = resolvePath(process.cwd(), "workspace");
+    const rel = relativePath(workspaceAbs, abs).replace(/\\/g, "/");
+    if (rel && !rel.startsWith("..") && !rel.startsWith("/")) return rel;
+    return normalized;
+  }
+
+  private localPathForWorkspaceFile(filePath: string): string {
+    return resolvePath(process.cwd(), "workspace", this.toWorkspacePath(filePath));
+  }
+
+  private timeoutSeconds(timeoutMs: unknown, fallbackSeconds: number): number {
+    const numeric = typeof timeoutMs === "number" ? timeoutMs : Number(timeoutMs);
+    if (!Number.isFinite(numeric) || numeric <= 0) return fallbackSeconds;
+    return Math.max(1, Math.ceil(numeric / 1000));
+  }
+
+  private timeValue(value: unknown): number | undefined {
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    const match = String(value || "").match(/\d+/);
+    return match ? Number(match[0]) : undefined;
+  }
+
+  private async callAndFormatRtlMcp(
+    tool: string,
+    mcpTool: string,
+    args: Record<string, any>,
+    notes: string[] = []
+  ): Promise<string> {
+    const payload = await this.callRtlMcpParsed(mcpTool, args);
+    const diagnostics = this.extractRtlDiagnostics(payload);
+    const success = this.inferRtlSuccess(payload, "");
+    const result: Record<string, any> = {
+      success,
+      tool,
+      backend: "eda-mcp",
+      mcp_tool: mcpTool,
+      mcp_args: args,
+      notes,
+      diagnostics,
+      summary: {
+        errors: diagnostics.filter((d) => d.severity === "error").length,
+        warnings: diagnostics.filter((d) => d.severity === "warning").length,
+      },
+      result: payload,
+    };
+    if (tool === "rtl_simulate") {
+      result.pass = this.inferSimulationPass(payload, success);
+      result.waveform = payload?.vcd_path || payload?.waveform || payload?.waveform_path || null;
+    }
+    return JSON.stringify(result, null, 2);
+  }
+
+  private async callRtlMcpParsed(mcpTool: string, args: Record<string, any>): Promise<any> {
+    const raw = await this.mcpManager.callTool(mcpTool, args);
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return { raw };
+    }
+  }
+
+  private inferRtlSuccess(payload: any, raw: string): boolean {
+    if (payload && typeof payload.returncode === "number") return payload.returncode === 0;
+    if (payload && typeof payload.success === "boolean") return payload.success;
+    const text = raw || this.collectRtlOutput(payload);
+    return !/\b(error|failed|failure)\b/i.test(text);
+  }
+
+  private inferSimulationPass(payload: any, success: boolean): boolean {
+    const text = this.collectRtlOutput(payload);
+    if (/\b(test\s+failed|failed|failure|error)\b/i.test(text)) return false;
+    if (/\b(test\s+passed|passed|pass|all\s+tests\s+passed)\b/i.test(text)) return true;
+    return success;
+  }
+
+  private collectRtlOutput(payload: any): string {
+    if (!payload) return "";
+    if (typeof payload === "string") return payload;
+    return [payload.stdout, payload.stderr, payload.log, payload.raw]
+      .filter((v) => typeof v === "string")
+      .join("\n");
+  }
+
+  private extractRtlDiagnostics(payload: any): Array<Record<string, any>> {
+    const text = this.collectRtlOutput(payload);
+    const diagnostics: Array<Record<string, any>> = [];
+    const verilatorRe = /^%(Warning|Error)-?([A-Z0-9_]+)?:\s+([^:\n]+):(\d+):(?:(\d+):)?\s*(.+)$/gmi;
+    for (const match of text.matchAll(verilatorRe)) {
+      diagnostics.push({
+        file: match[3],
+        line: Number(match[4]),
+        column: match[5] ? Number(match[5]) : undefined,
+        severity: match[1].toLowerCase() === "error" ? "error" : "warning",
+        code: match[2] || undefined,
+        message: match[6].trim(),
+      });
+    }
+    const simpleRe = /^([^:\n]+):(\d+):\s*(?:(error|warning):\s*)?(.+)$/gmi;
+    for (const match of text.matchAll(simpleRe)) {
+      const message = match[4].trim();
+      if (diagnostics.some((d) => d.file === match[1] && d.line === Number(match[2]) && d.message === message)) continue;
+      const severity = (match[3] || (/\berror\b/i.test(message) ? "error" : "warning")).toLowerCase();
+      diagnostics.push({
+        file: match[1],
+        line: Number(match[2]),
+        severity,
+        message,
+      });
+    }
+    return diagnostics;
+  }
+
+  private rtlError(tool: string, message: string): string {
+    return JSON.stringify({ success: false, tool, error: message }, null, 2);
   }
 
   // ─── Skill fork mode ─────────────────────────────────────

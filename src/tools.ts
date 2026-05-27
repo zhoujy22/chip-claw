@@ -16,12 +16,250 @@ export type PermissionMode = "default" | "plan" | "acceptEdits" | "bypassPermiss
 
 const READ_TOOLS = new Set(["read_file", "list_files", "grep_search", "web_fetch"]);
 const EDIT_TOOLS = new Set(["write_file", "edit_file"]);
+export const RTL_TOOL_NAMES = new Set([
+  "rtl_compile",
+  "rtl_simulate",
+  "rtl_synthesize",
+  "rtl_lint",
+  "waveform_analyze",
+]);
+const RTL_READONLY_TOOLS = new Set(["rtl_lint", "waveform_analyze"]);
+const RTL_MUTATING_TOOLS = new Set(["rtl_compile", "rtl_simulate", "rtl_synthesize"]);
 
 // Concurrency-safe tools can run in parallel (read-only, no side effects)
-export const CONCURRENCY_SAFE_TOOLS = new Set(["read_file", "list_files", "grep_search", "web_fetch"]);
+export const CONCURRENCY_SAFE_TOOLS = new Set([
+  "read_file",
+  "list_files",
+  "grep_search",
+  "web_fetch",
+  "rtl_lint",
+  "waveform_analyze",
+]);
 
 // Tool definition type for Claude API (with optional deferred flag)
 export type ToolDef = Anthropic.Tool & { deferred?: boolean };
+
+export function isRtlToolName(name: string): boolean {
+  return RTL_TOOL_NAMES.has(name);
+}
+
+function isRtlReadonlyToolName(name: string): boolean {
+  return RTL_READONLY_TOOLS.has(name);
+}
+
+function isRtlMutatingToolName(name: string): boolean {
+  return RTL_MUTATING_TOOLS.has(name);
+}
+
+function getMcpInnerToolName(name: string): string | null {
+  if (!name.startsWith("mcp__")) return null;
+  const parts = name.split("__");
+  if (parts.length < 3) return null;
+  return parts.slice(2).join("__");
+}
+
+function isMcpReadonlyToolName(name: string): boolean {
+  const inner = getMcpInnerToolName(name);
+  return !!inner && (
+    inner === "read_file" ||
+    inner === "list_files" ||
+    inner === "verilator_lint" ||
+    inner.startsWith("waveform_")
+  );
+}
+
+function isMcpMutatingToolName(name: string): boolean {
+  const inner = getMcpInnerToolName(name);
+  return !!inner && !isMcpReadonlyToolName(name);
+}
+
+const rtlToolDefinitions: ToolDef[] = [
+  {
+    name: "rtl_compile",
+    description:
+      "Compile-check Verilog/SystemVerilog files through the configured EDA backend. Returns normalized success status and diagnostics.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        files: {
+          type: "array",
+          items: { type: "string" },
+          description: "Workspace-relative Verilog/SystemVerilog source files to compile-check",
+        },
+        top_module: {
+          type: "string",
+          description: "Top-level module name. If omitted, Chip-Claw tries to infer it from the first source file.",
+        },
+        include_dirs: {
+          type: "array",
+          items: { type: "string" },
+          description: "Include search directories. Reserved for backends that support compile-only flags.",
+        },
+        defines: {
+          type: "object",
+          additionalProperties: { type: "string" },
+          description: "Preprocessor defines. Reserved for backends that support compile-only flags.",
+        },
+        tool: {
+          type: "string",
+          enum: ["iverilog", "verilator"],
+          description: "Requested compiler backend. Current MCP wrapper uses Verilator lint as the compile-check backend.",
+        },
+        timeout: {
+          type: "number",
+          description: "Timeout in milliseconds (default: 30000)",
+        },
+      },
+      required: ["files"],
+    },
+  },
+  {
+    name: "rtl_simulate",
+    description:
+      "Run RTL simulation with a testbench through eda-mcp. Returns normalized pass/fail status, logs, and waveform path when available.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        files: {
+          type: "array",
+          items: { type: "string" },
+          description: "All workspace-relative Verilog/SystemVerilog files, including the testbench",
+        },
+        top_module: {
+          type: "string",
+          description: "Top-level testbench module name",
+        },
+        timeout: {
+          type: "number",
+          description: "Simulation timeout in milliseconds (default: 60000)",
+        },
+        plusargs: {
+          type: "array",
+          items: { type: "string" },
+          description: "Simulation plusargs. Reserved; current eda-mcp simulator does not expose plusarg forwarding.",
+        },
+        dump_waves: {
+          type: "boolean",
+          description: "Whether waveform output is expected. eda-mcp returns the VCD path when the testbench emits one.",
+        },
+        tool: {
+          type: "string",
+          enum: ["iverilog", "verilator"],
+          description: "Simulator backend. Current MCP wrapper supports iverilog.",
+        },
+      },
+      required: ["files", "top_module"],
+    },
+  },
+  {
+    name: "rtl_synthesize",
+    description:
+      "Synthesize RTL through Yosys via eda-mcp. Returns normalized success status, output path, and raw Yosys logs.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        files: {
+          type: "array",
+          items: { type: "string" },
+          description: "Workspace-relative Verilog/SystemVerilog source files to synthesize",
+        },
+        top_module: {
+          type: "string",
+          description: "Top-level module name for synthesis",
+        },
+        target: {
+          type: "string",
+          enum: ["generic", "ice40", "ecp5", "gowin", "xilinx"],
+          description: "Target FPGA family or generic. Current eda-mcp wrapper supports generic Yosys only.",
+        },
+        flatten: {
+          type: "boolean",
+          description: "Reserved for future backend support",
+        },
+        output_verilog: {
+          type: "boolean",
+          description: "Emit a Verilog netlist when true; otherwise emit a Yosys JSON netlist",
+        },
+        timeout: {
+          type: "number",
+          description: "Timeout in milliseconds (default: 120000)",
+        },
+      },
+      required: ["files", "top_module"],
+    },
+  },
+  {
+    name: "rtl_lint",
+    description:
+      "Run static lint checks on Verilog/SystemVerilog sources through eda-mcp. Returns normalized diagnostics and summary counts.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        files: {
+          type: "array",
+          items: { type: "string" },
+          description: "Workspace-relative Verilog/SystemVerilog files to lint",
+        },
+        top_module: {
+          type: "string",
+          description: "Top-level module name. If omitted, Chip-Claw tries to infer it from the first source file.",
+        },
+        tool: {
+          type: "string",
+          enum: ["verilator", "svlint"],
+          description: "Lint backend. Current MCP wrapper supports verilator.",
+        },
+        rules: {
+          type: "array",
+          items: { type: "string" },
+          description: "Reserved for future lint-rule forwarding",
+        },
+        timeout: {
+          type: "number",
+          description: "Timeout in milliseconds (default: 30000)",
+        },
+      },
+      required: ["files"],
+    },
+  },
+  {
+    name: "waveform_analyze",
+    description:
+      "Inspect VCD/FST waveforms through eda-mcp waveform tools. Supports signal listing, metadata summaries, and transition/event lookup.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        vcd_file: {
+          type: "string",
+          description: "Workspace-relative path to the VCD/FST waveform file",
+        },
+        signals: {
+          type: "array",
+          items: { type: "string" },
+          description: "Signal names to inspect, or ['*'] to list available signals",
+        },
+        time_range: {
+          type: "object",
+          properties: {
+            start: { type: "string", description: "Start time/index, e.g. '0' or '0ns'" },
+            end: { type: "string", description: "End time/index, e.g. '1000' or '1000ns'" },
+          },
+          description: "Optional time range. Numeric portions are passed to eda-mcp waveform event search.",
+        },
+        format: {
+          type: "string",
+          enum: ["transitions", "table", "summary"],
+          description: "Output format. transitions uses event search; summary uses signal metadata; table samples selected time indices.",
+        },
+        max_transitions: {
+          type: "number",
+          description: "Maximum transitions/events per signal (default: 200)",
+        },
+      },
+      required: ["vcd_file", "signals"],
+    },
+  },
+];
 
 // ─── Tool definitions ───────────────────────────────────────
 
@@ -184,6 +422,7 @@ export const toolDefinitions: ToolDef[] = [
       required: ["url"],
     },
   },
+  ...rtlToolDefinitions,
   // ─── Plan mode tools ────────────────────────────────────────
   {
     name: "enter_plan_mode",
@@ -652,6 +891,12 @@ export function checkPermission(
     }
     if (toolName === "run_shell") {
       return { action: "deny", message: "Shell commands blocked in plan mode" };
+    }
+    if (isRtlReadonlyToolName(toolName) || isMcpReadonlyToolName(toolName)) {
+      return { action: "allow" };
+    }
+    if (isRtlMutatingToolName(toolName) || isMcpMutatingToolName(toolName)) {
+      return { action: "deny", message: `Blocked in plan mode: ${toolName}` };
     }
   }
 
