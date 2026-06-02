@@ -6,6 +6,7 @@ import { homedir } from "os";
 
 const isWin = process.platform === "win32";
 import { getMemoryDir } from "./memory.js";
+import { getRtlKnowledgeEntry, searchRtlKnowledge } from "./knowledge.js";
 import type Anthropic from "@anthropic-ai/sdk";
 // Note: skill execution is handled in agent.ts (supports fork mode)
 
@@ -14,7 +15,7 @@ import type Anthropic from "@anthropic-ai/sdk";
 
 export type PermissionMode = "default" | "plan" | "acceptEdits" | "bypassPermissions" | "dontAsk";
 
-const READ_TOOLS = new Set(["read_file", "list_files", "grep_search", "web_fetch"]);
+const READ_TOOLS = new Set(["read_file", "list_files", "grep_search", "web_fetch", "rtl_knowledge_search", "rtl_knowledge_get"]);
 const EDIT_TOOLS = new Set(["write_file", "edit_file"]);
 export const RTL_TOOL_NAMES = new Set([
   "rtl_compile",
@@ -32,6 +33,8 @@ export const CONCURRENCY_SAFE_TOOLS = new Set([
   "list_files",
   "grep_search",
   "web_fetch",
+  "rtl_knowledge_search",
+  "rtl_knowledge_get",
   "rtl_lint",
   "waveform_analyze",
 ]);
@@ -420,6 +423,49 @@ export const toolDefinitions: ToolDef[] = [
         },
       },
       required: ["url"],
+    },
+  },
+  {
+    name: "rtl_knowledge_search",
+    description:
+      "Search the local RTL knowledge base for coding rules, templates, protocol notes, testbench recipes, and bug patterns. Use this before generating RTL.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        query: {
+          type: "string",
+          description: "Natural-language query, e.g. 'sync fifo valid ready testbench'",
+        },
+        types: {
+          type: "array",
+          items: { type: "string" },
+          description: "Optional entry types to include, e.g. coding_rule, template, protocol, testbench, bug_pattern",
+        },
+        tags: {
+          type: "array",
+          items: { type: "string" },
+          description: "Optional tags to boost or require relevance",
+        },
+        limit: {
+          type: "number",
+          description: "Maximum number of entries to return (default 5, max 20)",
+        },
+      },
+    },
+  },
+  {
+    name: "rtl_knowledge_get",
+    description:
+      "Read one exact RTL knowledge-base entry by id. Use after rtl_knowledge_search when a specific template or rule is relevant.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        id: {
+          type: "string",
+          description: "Knowledge entry id, e.g. sync-fifo, valid-ready, verilog-rtl-style",
+        },
+      },
+      required: ["id"],
     },
   },
   ...rtlToolDefinitions,
@@ -1075,6 +1121,12 @@ export async function executeTool(
       }
       break;
     }
+    case "rtl_knowledge_search":
+      result = searchRtlKnowledge(input);
+      break;
+    case "rtl_knowledge_get":
+      result = getRtlKnowledgeEntry(input as { id: string });
+      break;
     case "tool_search": {
       const query = (input.query as string || "").toLowerCase();
       const deferred = toolDefinitions.filter(t => t.deferred);

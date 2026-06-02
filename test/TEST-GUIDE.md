@@ -1,17 +1,17 @@
 # ChipClaw 功能测试指南
 
-手动测试 19 项功能。全部使用 `--yolo` 模式。TS 和 Python 各测一遍。
+手动测试功能清单。全部使用 `--yolo` 模式；当前仓库只保留 TypeScript 版本。
 
 ## 准备
 
 ```bash
-cd claude-code-from-scratch
+cd chip-claw
 
 # 一键配置测试环境（MCP、Skills、CHIPCLAW.md、大文件）
 bash test/setup.sh
 
-# 构建 TS 版
-npm run build # 如果使用ts版则需构建，python版不用
+# 构建并运行基础 smoke test
+npm test
 ```
 
 确保 `.env` 已配置好 API Key：
@@ -27,7 +27,7 @@ ANTHROPIC_BASE_URL=https://aihubmix.com   # 可选
 
 ## 启动方式
 
-**TS 版（二选一）**：
+**启动（二选一）**：
 ```bash
 # 交互式 REPL（推荐，能测 skill 和 REPL 命令）
 node dist/cli.js --yolo
@@ -35,16 +35,6 @@ node dist/cli.js --yolo
 # one-shot 模式
 node dist/cli.js --yolo "你的提示词"
 ```
-
-**Python 版**：
-```bash
-python -m chipclaw --yolo
-
-# 或 one-shot
-python -m chipclaw --yolo "你的提示词"
-```
-
----
 
 ## 测试项目
 
@@ -88,11 +78,6 @@ Read the files src/frontmatter.ts, src/session.ts, and src/skills.ts at the same
 ```
 
 ✅ 预期：三个 `read_file` 调用同时出现（不是一个一个来的）
-
-Python 版：
-```
-Read the files python/chipclaw/frontmatter.py and python/chipclaw/session.py at the same time, then tell me each file's line count.
-```
 
 ---
 

@@ -1,5 +1,6 @@
 {
   "enabledMcpjsonServers": [
-    "test"
+    "test",
+    "eda-mcp"
   ]
 }

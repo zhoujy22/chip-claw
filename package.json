@@ -8,6 +8,7 @@
   },
   "scripts": {
     "build": "tsc",
+    "test": "npm run build && node test/mcp-config-smoke.mjs && node test/knowledge-smoke.mjs",
     "start": "node dist/cli.js",
     "dev": "tsc && node dist/cli.js"
   },

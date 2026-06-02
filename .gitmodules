@@ -1,3 +1,6 @@
 [submodule "eda-mcp"]
 	path = eda-mcp
 	url = https://github.com/LittleBlackCQ/eda-mcp.git
+[submodule "vendor/rtl-knowledge"]
+	path = vendor/rtl-knowledge
+	url = https://github.com/zhoujy22/rtl-knowledge.git

@@ -2,8 +2,11 @@
  * MCP Client — connects to stdio-based MCP servers, discovers and forwards tool calls.
  * Uses raw JSON-RPC over stdio (no SDK dependency for simplicity).
  *
- * Config is read from .chipclaw/settings.json and ~/.chipclaw/settings.json:
+ * Config is read from .chipclaw/settings.json, .chipclaw/settings.local.json,
+ * ~/.chipclaw/settings.json, and ~/.chipclaw/settings.local.json:
  *   { "mcpServers": { "name": { "command": "...", "args": [...], "env": {...} } } }
+ * Project .mcp.json is also supported. If settings.local.json contains
+ * enabledMcpjsonServers, only those .mcp.json servers are loaded.
  *
  * Each MCP tool is exposed with a "mcp__serverName__toolName" prefix to avoid conflicts.
  */
@@ -20,6 +23,11 @@ interface McpServerConfig {
   command: string;
   args?: string[];
   env?: Record<string, string>;
+}
+
+interface McpSettings {
+  mcpServers?: Record<string, McpServerConfig>;
+  enabledMcpjsonServers?: string[];
 }
 
 interface McpToolInfo {
@@ -71,6 +79,11 @@ class McpConnection {
 
     this.process.on("error", (err) => {
       console.error(`[mcp:${this.serverName}] process error: ${err.message}`);
+      for (const [, { reject }] of this.pending) {
+        reject(err);
+      }
+      this.pending.clear();
+      this.process = null;
     });
 
     this.process.on("exit", (code) => {
@@ -234,13 +247,29 @@ export class McpManager {
     const globalPath = join(homedir(), ".chipclaw", "settings.json");
     this.mergeConfigFile(globalPath, merged);
 
-    // 2. Project: .chipclaw/settings.json (cwd)
+    // 2. Global local overrides: ~/.chipclaw/settings.local.json
+    const globalLocalPath = join(homedir(), ".chipclaw", "settings.local.json");
+    this.mergeConfigFile(globalLocalPath, merged);
+
+    // 3. Project: .chipclaw/settings.json (cwd)
     const projectPath = join(process.cwd(), ".chipclaw", "settings.json");
     this.mergeConfigFile(projectPath, merged);
 
-    // 3. Also check .mcp.json (Claude Code convention)
+    // 4. Project local overrides: .chipclaw/settings.local.json
+    const projectLocalPath = join(process.cwd(), ".chipclaw", "settings.local.json");
+    this.mergeConfigFile(projectLocalPath, merged);
+
+    // 5. Also check .mcp.json (Claude Code convention). settings.local.json
+    // can restrict which .mcp.json servers are enabled.
     const mcpJsonPath = join(process.cwd(), ".mcp.json");
-    this.mergeConfigFile(mcpJsonPath, merged);
+    const mcpJsonConfigs: Record<string, McpServerConfig> = {};
+    this.mergeConfigFile(mcpJsonPath, mcpJsonConfigs);
+    const enabledMcpJsonServers = this.loadEnabledMcpJsonServers([globalLocalPath, projectLocalPath]);
+    for (const [name, config] of Object.entries(mcpJsonConfigs)) {
+      if (!enabledMcpJsonServers || enabledMcpJsonServers.has(name)) {
+        merged[name] = config;
+      }
+    }
 
     return merged;
   }
@@ -257,6 +286,29 @@ export class McpManager {
       }
     } catch {
       // Silently skip malformed config files
+    }
+  }
+
+  private loadEnabledMcpJsonServers(filePaths: string[]): Set<string> | null {
+    const enabled: string[] = [];
+    let configured = false;
+    for (const filePath of filePaths) {
+      const raw = this.readSettingsFile(filePath);
+      if (!raw) continue;
+      if (Array.isArray(raw.enabledMcpjsonServers)) {
+        configured = true;
+        enabled.push(...raw.enabledMcpjsonServers.filter((name) => typeof name === "string"));
+      }
+    }
+    return configured ? new Set(enabled) : null;
+  }
+
+  private readSettingsFile(filePath: string): McpSettings | null {
+    if (!existsSync(filePath)) return null;
+    try {
+      return JSON.parse(readFileSync(filePath, "utf-8"));
+    } catch {
+      return null;
     }
   }
 

@@ -20,6 +20,8 @@
 
 **Skill 系统** — 斜杠命令工作流：`/gen-module`、`/verify`、`/lint-fix`。
 
+**RTL 知识库** — 通过 `vendor/rtl-knowledge` submodule 提供可复用 RTL 规范、协议、模板、testbench 和 bug pattern；Agent 通过 `rtl_knowledge_search` / `rtl_knowledge_get` 检索。
+
 **SubAgent** — 将重型子任务（探索、规划、代码审查）委派给隔离的子 Agent 实例。
 
 **双后端支持** — 同时支持 Anthropic API 和任意 OpenAI 兼容接口。
@@ -75,6 +77,8 @@ docker build -t eda-mcp .
 ```
 
 构建完成后，启动 chip-claw 即自动连接 eda-mcp server，工具以 `mcp__eda-mcp__<tool>` 前缀暴露给 Agent。EDA 工件存放在 `workspace/` 目录中。
+
+本地 MCP 启用列表由 `.chipclaw/settings.local.json` 的 `enabledMcpjsonServers` 控制；若要启用 EDA 工具链，请确保其中包含 `"eda-mcp"`，并已构建 Docker 镜像。
 
 ### RTL 工具接口（API 已设计，实现开发中）
 
@@ -183,7 +187,7 @@ node dist/cli.js --yolo --model claude-sonnet-4-6 "生成一个 AXI4-Lite 从设
 
 | 阶段 | 状态 |
 |------|------|
-| P0 基础设施 | 进行中 — 项目初始化完成、工具 API 文档完成、工具代码实现待开发 |
+| P0 基础设施 | 基本完成 — 项目初始化、工具 API 文档、eda-mcp 集成、RTL 工具封装已完成，剩余 compile-only/VCD 原生解析等增强项 |
 | P1 RTL 生成 | 进行中 — System Prompt + gen-module Skill 就绪，需工具链完成后端到端验证 |
 | P2 RTL 优化 | 未开始 |
 | P3 RTL 验证 | 未开始 |
