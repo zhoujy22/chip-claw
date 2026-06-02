@@ -18,14 +18,17 @@ export type PermissionMode = "default" | "plan" | "acceptEdits" | "bypassPermiss
 const READ_TOOLS = new Set(["read_file", "list_files", "grep_search", "web_fetch", "rtl_knowledge_search", "rtl_knowledge_get"]);
 const EDIT_TOOLS = new Set(["write_file", "edit_file"]);
 export const RTL_TOOL_NAMES = new Set([
+  "rtl_workspace_list",
+  "rtl_workspace_read",
+  "rtl_workspace_write",
   "rtl_compile",
   "rtl_simulate",
   "rtl_synthesize",
   "rtl_lint",
   "waveform_analyze",
 ]);
-const RTL_READONLY_TOOLS = new Set(["rtl_lint", "waveform_analyze"]);
-const RTL_MUTATING_TOOLS = new Set(["rtl_compile", "rtl_simulate", "rtl_synthesize"]);
+const RTL_READONLY_TOOLS = new Set(["rtl_workspace_list", "rtl_workspace_read", "rtl_lint", "waveform_analyze"]);
+const RTL_MUTATING_TOOLS = new Set(["rtl_workspace_write", "rtl_compile", "rtl_simulate", "rtl_synthesize"]);
 
 // Concurrency-safe tools can run in parallel (read-only, no side effects)
 export const CONCURRENCY_SAFE_TOOLS = new Set([
@@ -35,6 +38,8 @@ export const CONCURRENCY_SAFE_TOOLS = new Set([
   "web_fetch",
   "rtl_knowledge_search",
   "rtl_knowledge_get",
+  "rtl_workspace_list",
+  "rtl_workspace_read",
   "rtl_lint",
   "waveform_analyze",
 ]);
@@ -77,6 +82,54 @@ function isMcpMutatingToolName(name: string): boolean {
 }
 
 const rtlToolDefinitions: ToolDef[] = [
+  {
+    name: "rtl_workspace_list",
+    description:
+      "List files inside the canonical RTL/EDA MCP workspace. Use this for generated RTL, testbenches, build logs, and EDA artifacts.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        subdir: {
+          type: "string",
+          description: "Workspace-relative subdirectory to list. Empty string lists the workspace root.",
+        },
+      },
+    },
+  },
+  {
+    name: "rtl_workspace_read",
+    description:
+      "Read a text file from the canonical RTL/EDA MCP workspace. Use this for RTL sources, testbenches, build logs, and netlist outputs.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        path: {
+          type: "string",
+          description: "Workspace-relative file path, e.g. FIFO/sync_fifo.v or build/tb_sync_fifo/dump.vcd.",
+        },
+      },
+      required: ["path"],
+    },
+  },
+  {
+    name: "rtl_workspace_write",
+    description:
+      "Write a text file to the canonical RTL/EDA MCP workspace. Use this to create or overwrite Verilog RTL and testbench files before lint/simulation/synthesis.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        path: {
+          type: "string",
+          description: "Workspace-relative file path, e.g. FIFO/sync_fifo.v.",
+        },
+        content: {
+          type: "string",
+          description: "Complete file content to write.",
+        },
+      },
+      required: ["path", "content"],
+    },
+  },
   {
     name: "rtl_compile",
     description:

@@ -151,6 +151,8 @@ When generating or modifying Verilog RTL code:
 ## Default Workflow
  - When the user describes a module, first call rtl_knowledge_search for relevant coding rules, templates, protocols, testbench recipes, and bug patterns.
  - Use the retrieved RTL knowledge to summarize the micro-architecture (ports, key signals, state machines) in 3-5 bullet points, then generate the Verilog.
+ - For RTL design files, testbenches, simulation inputs, and EDA artifacts, use the Chip-Claw RTL wrapper tools (rtl_workspace_write, rtl_workspace_read, rtl_workspace_list, rtl_compile, rtl_lint, rtl_simulate, rtl_synthesize, waveform_analyze). These wrappers call the configured MCP backend internally. Treat the MCP workspace as the canonical RTL workspace.
+ - Do not copy or synchronize generated RTL files back into the project directory with the built-in write_file/edit_file tools unless the user explicitly asks for a local project copy. Built-in file tools are for Chip-Claw project files and non-MCP tasks.
  - Always generate a testbench alongside each module. The testbench should include: clock generation (10ns period), reset sequence (assert rst_n low for 20ns then release), stimulus, and $display-based pass/fail checks ending with $finish.
  - After writing RTL and testbench files, use rtl_compile to verify they compile cleanly. If compilation fails, read the error messages, fix the code, and re-compile. Repeat until clean.
  - If rtl_simulate is available, run the testbench after successful compilation.

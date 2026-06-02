@@ -340,13 +340,19 @@ export class Agent {
     return { input: this.totalInputTokens, output: this.totalOutputTokens };
   }
 
+  private shouldExposeMcpTool(toolName: string): boolean {
+    // eda-mcp is a backend for Chip-Claw's RTL wrapper tools. Keeping its
+    // raw tools hidden prevents the model from bypassing the public rtl_* API.
+    return !toolName.startsWith("mcp__eda-mcp__");
+  }
+
   async chat(userMessage: string): Promise<void> {
     // Lazily connect to MCP servers on first chat (main agent only)
     if (!this.mcpInitialized && !this.isSubAgent) {
       this.mcpInitialized = true;
       try {
         await this.mcpManager.loadAndConnect();
-        const mcpDefs = this.mcpManager.getToolDefinitions();
+        const mcpDefs = this.mcpManager.getToolDefinitions().filter((tool) => this.shouldExposeMcpTool(tool.name));
         if (mcpDefs.length > 0) {
           this.tools = [...this.tools, ...mcpDefs as ToolDef[]];
         }
@@ -782,6 +788,12 @@ export class Agent {
   ): Promise<string> {
     try {
       switch (name) {
+        case "rtl_workspace_list":
+          return await this.executeRtlWorkspaceList(input);
+        case "rtl_workspace_read":
+          return await this.executeRtlWorkspaceRead(input);
+        case "rtl_workspace_write":
+          return await this.executeRtlWorkspaceWrite(input);
         case "rtl_compile":
           return await this.executeRtlCompile(input);
         case "rtl_simulate":
@@ -798,6 +810,48 @@ export class Agent {
     } catch (err: any) {
       return this.rtlError(name, err.message || String(err));
     }
+  }
+
+  private async executeRtlWorkspaceList(input: Record<string, any>): Promise<string> {
+    const subdir = this.toWorkspacePath(String(input.subdir || ""));
+    const payload = await this.callRtlMcpParsed("mcp__eda-mcp__list_files", { subdir });
+    return JSON.stringify({
+      success: !payload?.error,
+      tool: "rtl_workspace_list",
+      backend: "eda-mcp",
+      workspace: "mcp",
+      result: payload,
+    }, null, 2);
+  }
+
+  private async executeRtlWorkspaceRead(input: Record<string, any>): Promise<string> {
+    const path = this.toWorkspacePath(String(input.path || "").trim());
+    if (!path) return this.rtlError("rtl_workspace_read", "path is required.");
+    const payload = await this.callRtlMcpParsed("mcp__eda-mcp__read_file", { path });
+    return JSON.stringify({
+      success: !payload?.error,
+      tool: "rtl_workspace_read",
+      backend: "eda-mcp",
+      workspace: "mcp",
+      path,
+      result: payload,
+    }, null, 2);
+  }
+
+  private async executeRtlWorkspaceWrite(input: Record<string, any>): Promise<string> {
+    const path = this.toWorkspacePath(String(input.path || "").trim());
+    const content = String(input.content ?? "");
+    if (!path) return this.rtlError("rtl_workspace_write", "path is required.");
+    const payload = await this.callRtlMcpParsed("mcp__eda-mcp__write_file", { path, content });
+    return JSON.stringify({
+      success: !payload?.error,
+      tool: "rtl_workspace_write",
+      backend: "eda-mcp",
+      workspace: "mcp",
+      path,
+      bytes: Buffer.byteLength(content),
+      result: payload,
+    }, null, 2);
   }
 
   private async executeRtlCompile(input: Record<string, any>): Promise<string> {

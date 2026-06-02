@@ -110,20 +110,51 @@ Examples:
 }
 
 async function runRepl(agent: Agent) {
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
+  let rlClosed = false;
+  let rl = createReadline();
+
+  function createReadline() {
+    const next = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+    });
+    next.on("close", () => {
+      if (rl === next) rlClosed = true;
+    });
+    rlClosed = false;
+    return next;
+  }
+
+  function ensureReadline() {
+    if (rlClosed) rl = createReadline();
+    return rl;
+  }
+
+  function askLine(prompt: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      try {
+        ensureReadline().question(prompt, resolve);
+      } catch (e: any) {
+        if (e?.message?.includes("readline was closed")) {
+          try {
+            rl = createReadline();
+            rl.question(prompt, resolve);
+          } catch (retryError) {
+            reject(retryError);
+          }
+        } else {
+          reject(e);
+        }
+      }
+    });
+  }
 
   // Provide confirmFn that reuses this readline instance, avoiding the
   // classic Node.js bug where a second readline on the same stdin kills
   // the first one when closed.
-  agent.setConfirmFn((_message: string) => {
-    return new Promise((resolve) => {
-      rl.question("  Allow? (y/n): ", (answer) => {
-        resolve(answer.toLowerCase().startsWith("y"));
-      });
-    });
+  agent.setConfirmFn(async (_message: string) => {
+    const answer = await askLine("  Allow? (y/n): ");
+    return answer.toLowerCase().startsWith("y");
   });
 
   // Plan approval callback: interactive multi-option selection
@@ -133,7 +164,7 @@ async function runRepl(agent: Agent) {
       printPlanApprovalOptions();
 
       const askChoice = () => {
-        rl.question("  Enter choice (1-4): ", (answer) => {
+        askLine("  Enter choice (1-4): ").then((answer) => {
           const choice = answer.trim();
           if (choice === "1") {
             resolve({ choice: "clear-and-execute" });
@@ -142,14 +173,14 @@ async function runRepl(agent: Agent) {
           } else if (choice === "3") {
             resolve({ choice: "manual-execute" });
           } else if (choice === "4") {
-            rl.question("  Feedback (what to change): ", (feedback) => {
+            askLine("  Feedback (what to change): ").then((feedback) => {
               resolve({ choice: "keep-planning", feedback: feedback.trim() || undefined });
-            });
+            }).catch((e) => resolve({ choice: "keep-planning", feedback: e.message }));
           } else {
             console.log("  Invalid choice. Enter 1, 2, 3, or 4.");
             askChoice();
           }
-        });
+        }).catch((e) => resolve({ choice: "keep-planning", feedback: e.message }));
       };
       askChoice();
     });
@@ -178,7 +209,7 @@ async function runRepl(agent: Agent) {
 
   const askQuestion = (): void => {
     printUserPrompt();
-    rl.once("line", async (line) => {
+    ensureReadline().once("line", async (line) => {
       const input = line.trim();
       sigintCount = 0;
 
