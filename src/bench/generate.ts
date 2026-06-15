@@ -44,13 +44,14 @@ export interface GenResult {
 }
 
 // Tools the generator gets: file I/O + search + RTL knowledge base, plus the
-// eda-mcp self-check wrappers (workspace write/read, compile, lint, simulate).
-// Deliberately excludes synth/waveform/shell/agent to stay focused.
+// FULL eda-mcp RTL self-check chain (workspace I/O, compile, lint, synth,
+// simulate, waveform). Deliberately excludes shell/agent/skill — no escape
+// hatch to the host filesystem or the hidden grader.
 const GEN_TOOL_NAMES = new Set([
   "read_file", "write_file", "edit_file", "list_files", "grep_search",
   "rtl_knowledge_search", "rtl_knowledge_get",
-  "rtl_workspace_write", "rtl_workspace_read",
-  "rtl_compile", "rtl_lint", "rtl_simulate",
+  "rtl_workspace_list", "rtl_workspace_read", "rtl_workspace_write",
+  "rtl_compile", "rtl_lint", "rtl_synthesize", "rtl_simulate", "waveform_analyze",
 ]);
 
 function genTools(): ToolDef[] {
@@ -70,9 +71,9 @@ Hard rules:
 Workflow:
 1. (Optional) call rtl_knowledge_search for relevant templates, coding rules, and bug patterns.
 2. Write the module with write_file to the EXACT path given in the task.
-3. Self-check: run rtl_compile and rtl_lint on your file. Fix every error and every meaningful warning, then re-check. Repeat until it compiles and lints clean.
-4. (Optional) To sanity-check behavior you MAY author your OWN small self-checking testbench with INLINE stimulus (no external file reads) and run rtl_simulate on it. This is your private check — it is NOT the grader.
-5. When the module compiles and lints clean and you are confident it meets the spec, stop.
+3. Static self-check: run rtl_compile and rtl_lint on your file, and rtl_synthesize to catch non-synthesizable constructs (inferred latches, multi-driven nets, combinational loops). Fix every error and every meaningful warning, then re-check until it compiles, lints and synthesizes clean.
+4. (Optional) Functional self-check: author your OWN small self-checking testbench with INLINE stimulus (no external file reads), run rtl_simulate on it, and use waveform_analyze on the resulting VCD to debug any mismatch. This is your PRIVATE check — it is NOT the grader.
+5. When the module is clean on the static checks and you are confident it meets the spec, stop.
 
 If the EDA tools are unavailable (they may error in some environments), still write the best correct module you can from the spec and stop.`;
 

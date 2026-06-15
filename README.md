@@ -153,7 +153,7 @@ docker build -t eda-mcp .
 **生成与评分解耦，且评分答案对 Agent 隐藏：**
 
 - **生成沙箱** = `workspace/bench/<task>-k<n>/`，只放 Agent 自己写的模块（以及它可选自写的内联激励自检 TB）。评分用的 testbench、stimulus、`golden_output.json` **永不进入此目录**——Agent 读不到答案，也无法自评，pass@k 才有意义。
-- **自检迭代**走 eda-mcp 的 `rtl_compile`/`rtl_lint`（底层 `verilator_lint`，只吃源文件+顶层，不跑 `vvp`、不依赖相对路径文件 IO），给 Agent 真实的编译→修复额度（`--max-turns`，默认 12）。无 docker 环境下这些工具会优雅报错，Agent 退化为一次性生成。
+- **自检迭代**给 Agent 完整的 eda-mcp RTL 工具链：静态检查 `rtl_compile`/`rtl_lint`/`rtl_synthesize`（查语法、lint、可综合性——锁存器推断/多驱动/组合环），功能自检 `rtl_simulate` + `waveform_analyze`（Agent 自写内联激励 TB 跑仿真、看波形定位 bug），外加 `rtl_workspace_*` 落盘。这给 Agent 真实的编译→修复额度（`--max-turns`，默认 12）。无 docker 环境下这些工具会优雅报错，Agent 退化为一次性生成。
 - **评分**由 runner 独立完成：把 Agent 最终模块拷进隔离评分目录（含隐藏的评分 TB + golden），在 eda-mcp 镜像内按正确 cwd 跑 `iverilog`/`vvp`/`python3`。
 
 ### 前置条件
