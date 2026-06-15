@@ -3,4 +3,7 @@ dist/
 .env
 .claude
 workspace/build/
+workspace/bench/
 FIFO/
+bench-runs/
+bench-results/

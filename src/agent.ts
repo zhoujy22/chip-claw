@@ -140,6 +140,9 @@ interface AgentOptions {
   customSystemPrompt?: string;
   customTools?: ToolDef[];
   isSubAgent?: boolean;
+  /** Connect MCP servers even when running as a sub-agent (tool-driven flows
+   *  like the benchmark generator that need rtl_compile/rtl_lint self-check). */
+  enableMcp?: boolean;
 }
 
 export class Agent {
@@ -159,6 +162,7 @@ export class Agent {
   private sessionId: string;
   private sessionStartTime: string;
   private isSubAgent: boolean;
+  private enableMcp: boolean;
 
   // MCP integration
   private mcpManager = new McpManager();
@@ -216,6 +220,7 @@ export class Agent {
     this.thinkingMode = this.resolveThinkingMode();
     this.useOpenAI = !!options.apiBase;
     this.isSubAgent = options.isSubAgent || false;
+    this.enableMcp = options.enableMcp || false;
     this.tools = options.customTools || toolDefinitions;
     this.maxCostUsd = options.maxCostUsd;
     this.maxTurns = options.maxTurns;
@@ -347,8 +352,10 @@ export class Agent {
   }
 
   async chat(userMessage: string): Promise<void> {
-    // Lazily connect to MCP servers on first chat (main agent only)
-    if (!this.mcpInitialized && !this.isSubAgent) {
+    // Lazily connect to MCP servers on first chat. Main agents always connect;
+    // sub-agents only when they explicitly opt in via enableMcp (e.g. the
+    // benchmark generator's rtl_compile/rtl_lint self-check loop).
+    if (!this.mcpInitialized && (!this.isSubAgent || this.enableMcp)) {
       this.mcpInitialized = true;
       try {
         await this.mcpManager.loadAndConnect();

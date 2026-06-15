@@ -8,9 +8,10 @@
   },
   "scripts": {
     "build": "tsc",
-    "test": "npm run build && node test/mcp-config-smoke.mjs && node test/knowledge-smoke.mjs",
+    "test": "npm run build && node test/mcp-config-smoke.mjs && node test/knowledge-smoke.mjs && node test/bench-smoke.mjs",
     "start": "node dist/cli.js",
-    "dev": "tsc && node dist/cli.js"
+    "dev": "tsc && node dist/cli.js",
+    "bench": "tsc && node dist/bench/run.js"
   },
   "keywords": [
     "claude-code",

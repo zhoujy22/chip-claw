@@ -44,6 +44,7 @@ src/
   mcp.ts          MCP Server 集成
   frontmatter.ts  YAML frontmatter 解析器
   ui.ts           终端输出格式化
+  bench/          RTL 评测基准 runner（任务注册表、评分后端、生成器、CLI）
 ```
 
 ## RTL 专属能力
@@ -142,6 +143,73 @@ docker build -t eda-mcp .
 | `/gen-module <spec>` | 根据自然语言描述生成 Verilog 模块 + testbench |
 | `/verify` | 一键编译并仿真当前设计 |
 | `/lint-fix` | 运行 lint 检查并自动修复 |
+
+## RTL 评测基准（Benchmark）
+
+内置评测闭环：喂任务规格 → 驱动 Agent 在 workspace 沙箱里**自主迭代生成**（写 RTL → `rtl_compile`/`rtl_lint` 自检 → 修 → 重检）→ 把最终模块拷进隔离评分目录跑隐藏 testbench → 对 golden 打分 → 汇总 **pass@k**。用于量化和迭代 RTL 生成能力。
+
+第一版覆盖 **ArchXBench**（`iverilog` + JSON golden 对比）：`aes_encryption`、`conv_3d`。
+
+**生成与评分解耦，且评分答案对 Agent 隐藏：**
+
+- **生成沙箱** = `workspace/bench/<task>-k<n>/`，只放 Agent 自己写的模块（以及它可选自写的内联激励自检 TB）。评分用的 testbench、stimulus、`golden_output.json` **永不进入此目录**——Agent 读不到答案，也无法自评，pass@k 才有意义。
+- **自检迭代**走 eda-mcp 的 `rtl_compile`/`rtl_lint`（底层 `verilator_lint`，只吃源文件+顶层，不跑 `vvp`、不依赖相对路径文件 IO），给 Agent 真实的编译→修复额度（`--max-turns`，默认 12）。无 docker 环境下这些工具会优雅报错，Agent 退化为一次性生成。
+- **评分**由 runner 独立完成：把 Agent 最终模块拷进隔离评分目录（含隐藏的评分 TB + golden），在 eda-mcp 镜像内按正确 cwd 跑 `iverilog`/`vvp`/`python3`。
+
+### 前置条件
+
+1. **benchmark 数据**（来自 `ctr` 分支，未合入 `main`）：
+
+   ```bash
+   git fetch origin ctr
+   git restore --source=origin/ctr -- benchmark
+   ```
+
+2. **eda-mcp 镜像**：评分在镜像内跑 `iverilog`/`vvp`/`python3`（testbench 的相对 `inputs/`/`outputs/` 在 `/workspace` 下解析）；生成阶段 Agent 的 `rtl_compile`/`rtl_lint` 自检也走此镜像。
+
+   ```bash
+   docker build -t eda-mcp eda-mcp/
+   ```
+
+   > 无 docker 时仍可生成（自检工具优雅退化、不报致命错），但 Agent 退化为一次性生成，且评分会标记为 `skipped`。
+
+3. **API Key**：生成阶段需要（同主程序，见下文「配置 API Key」）。
+
+### 用法
+
+```bash
+# 跑全部 ArchXBench 任务，每题采样 3 次（pass@3），用 docker 镜像评分
+npm run bench -- --suite ArchXBench --backend docker --k 3
+
+# 单题
+npm run bench -- --task aes_encryption --backend docker --k 5
+
+# 不调用模型，回放已有 RTL 文件做评分（调试评分链路用）
+npm run bench -- --task conv_3d --generator replay --replay path/to/conv3d.v --backend docker
+```
+
+### 参数
+
+| 参数 | 说明 |
+|------|------|
+| `--task <id>` | 指定任务（可重复）。已知：`aes_encryption`、`conv_3d` |
+| `--suite ArchXBench` | 跑全部 ArchXBench 任务（不指定 `--task` 时默认全部） |
+| `--backend auto\|docker\|host` | 评分后端。`docker`=eda-mcp 镜像（推荐）；`host`=本机 PATH 上的 `iverilog`/`python`；`auto` 有 docker 用 docker，否则 host |
+| `--k N` | 每题采样次数，用于 pass@k（默认 1） |
+| `--model M` | 生成模型（默认 `CHIPCLAW_MODEL` 或 `claude-opus-4-6`） |
+| `--generator agent\|replay` | `agent`=调用模型生成；`replay`=回放 `.v` 文件 |
+| `--replay <file>` / `--replay-dir <dir>` | replay 模式的 RTL 来源 |
+| `--max-turns N` | 单次生成的自检迭代额度（编译→修复轮次，默认 12） |
+| `--max-cost USD` | 单次生成的费用上限 |
+| `--out <path>` | 报告路径（默认 `bench-results/bench-<ts>.json`） |
+
+### 输出
+
+- 控制台打印每题 `pass@1` / `pass@k` 和 token/费用汇总。
+- 结构化报告写入 `bench-results/bench-<ts>.json`。
+- 每次采样的隔离评分目录（暂存的 testbench、最终 RTL、`score.log`）留在 `bench-runs/<ts>/`，生成沙箱留在 `workspace/bench/<task>-k<n>/`，便于复盘。
+
+> **结果三态**：`error`（编译/仿真失败，端口或语法问题）、`fail`（仿真通过但功能对不上 golden）、`pass`；无工具链时为 `skipped`。区分 `error` 与 `fail` 便于定位增强方向。`bench-runs/`、`bench-results/`、`workspace/bench/` 均已加入 `.gitignore`。
 
 ## 快速开始
 
